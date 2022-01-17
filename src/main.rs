@@ -3,9 +3,10 @@ use std::net::SocketAddr;
 use axum::extract::Extension;
 use axum::http::StatusCode;
 use axum::response::Html;
-use axum::routing::get;
+use axum::routing::{get, get_service};
 use axum::{AddExtensionLayer, Router, Server};
 use tera::{Context, Tera};
+use tower_http::services::ServeDir;
 
 #[tokio::main]
 async fn main() {
@@ -19,6 +20,17 @@ async fn main() {
 
     let app = Router::new()
         .route("/", get(index))
+        .nest(
+            "/static",
+            get_service(ServeDir::new("./static/")).handle_error(
+                |error: std::io::Error| async move {
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("Unhandled internal error: {}", error),
+                    )
+                },
+            ),
+        )
         .layer(AddExtensionLayer::new(templates));
 
     let address = SocketAddr::from(([127, 0, 0, 1], 8000));

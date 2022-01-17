@@ -4,6 +4,14 @@
 <title>{{ site_name }}</title>
 {% endblock title %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="/static/chat/css/styles.css">
+{% endblock extra_css %}
+
 {% block content %}
 <h1>Welcome to {{ site_name }}</h1>
 {% endblock content %}
+
+{% block extra_js %}
+<script src="/static/chat/js/main.js"></script>
+{% endblock extra_js %}
