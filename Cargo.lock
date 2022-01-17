@@ -92,7 +92,7 @@ dependencies = [
  "tokio-tungstenite",
  "tokio-util",
  "tower",
- "tower-http 0.2.0",
+ "tower-http",
  "tower-layer",
  "tower-service",
 ]
@@ -1381,36 +1381,12 @@ dependencies = [
 
 [[package]]
 name = "tower-http"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f70061b0592867f0a60e67a6e699da5fe000c88a360a5b92ebdba9d73b2238c"
-dependencies = [
- "async-compression",
- "base64 0.13.0",
- "bytes",
- "futures-core",
- "futures-util",
- "http",
- "http-body",
- "iri-string",
- "mime",
- "mime_guess",
- "percent-encoding",
- "pin-project",
- "tokio",
- "tokio-util",
- "tower",
- "tower-layer",
- "tower-service",
- "tracing",
-]
-
-[[package]]
-name = "tower-http"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39ee603d6e665ecc7e0f8d479eedb4626bd4726f0ee6119cee5b3a6bf184cac0"
 dependencies = [
+ "async-compression",
+ "base64 0.13.0",
  "bitflags",
  "bytes",
  "futures-core",
@@ -1418,9 +1394,17 @@ dependencies = [
  "http",
  "http-body",
  "http-range-header",
+ "iri-string",
+ "mime",
+ "mime_guess",
+ "percent-encoding",
  "pin-project-lite",
+ "tokio",
+ "tokio-util",
+ "tower",
  "tower-layer",
  "tower-service",
+ "tracing",
 ]
 
 [[package]]
@@ -1478,7 +1462,7 @@ dependencies = [
  "tera",
  "tokio",
  "tower",
- "tower-http 0.1.2",
+ "tower-http",
 ]
 
 [[package]]
