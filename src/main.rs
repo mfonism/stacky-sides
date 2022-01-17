@@ -19,19 +19,17 @@ async fn main() {
         }
     };
 
+    let staticfiles_service =
+        get_service(ServeDir::new("./static/")).handle_error(|error: std::io::Error| async move {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Unhandled internal error: {}", error),
+            )
+        });
+
     let app = Router::new()
         .route("/", get(index).post(create_game))
-        .nest(
-            "/static",
-            get_service(ServeDir::new("./static/")).handle_error(
-                |error: std::io::Error| async move {
-                    (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("Unhandled internal error: {}", error),
-                    )
-                },
-            ),
-        )
+        .nest("/static", staticfiles_service)
         .layer(AddExtensionLayer::new(templates));
 
     let address = SocketAddr::from(([127, 0, 0, 1], 8000));
