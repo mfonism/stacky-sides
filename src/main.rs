@@ -57,10 +57,8 @@ async fn index(
 }
 
 async fn create_game(Form(payload): Form<GameCreationPayload>) {
-    println!("NAME: {:?}", payload.name);
+    println!("NAME: {:?}", payload);
 }
 
 #[derive(Deserialize, Debug)]
-struct GameCreationPayload {
-    name: String,
-}
+struct GameCreationPayload {}

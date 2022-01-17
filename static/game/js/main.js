@@ -1,1 +1,0 @@
-alert("Well, well, well!");
