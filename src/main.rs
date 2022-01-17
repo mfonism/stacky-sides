@@ -47,7 +47,7 @@ async fn index(
     let mut context = Context::new();
     context.insert("site_name", "Stacky Sides");
     let body = templates
-        .render("chat/index.html.tera", &context)
+        .render("game/index.html.tera", &context)
         .map_err(|_| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
