@@ -1,10 +1,11 @@
 use std::net::SocketAddr;
 
-use axum::extract::Extension;
+use axum::extract::{Extension, Form};
 use axum::http::StatusCode;
 use axum::response::Html;
 use axum::routing::{get, get_service};
 use axum::{AddExtensionLayer, Router, Server};
+use serde::Deserialize;
 use tera::{Context, Tera};
 use tower_http::services::ServeDir;
 
@@ -19,7 +20,7 @@ async fn main() {
     };
 
     let app = Router::new()
-        .route("/", get(index))
+        .route("/", get(index).post(create_game))
         .nest(
             "/static",
             get_service(ServeDir::new("./static/")).handle_error(
@@ -55,4 +56,13 @@ async fn index(
         })?;
 
     Ok(Html(body))
+}
+
+async fn create_game(Form(payload): Form<GameCreationPayload>) {
+    println!("NAME: {:?}", payload.name);
+}
+
+#[derive(Deserialize, Debug)]
+struct GameCreationPayload {
+    name: String,
 }

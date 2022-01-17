@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 axum = { version = "0.4.4", features = ["ws"] }
 hyper = { version = "0.14.16", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
 tera = "1"
 tokio = { version = "1.15.0", features = ["full"] }
 tower = { version = "0.4.11", features = ["full"] }
