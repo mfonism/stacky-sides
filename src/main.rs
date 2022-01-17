@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 
 use axum::extract::{Extension, Form};
 use axum::http::StatusCode;
-use axum::response::Html;
+use axum::response::{Html, IntoResponse, Redirect};
 use axum::routing::{get, get_service};
 use axum::{AddExtensionLayer, Router, Server};
 use serde::Deserialize;
@@ -29,6 +29,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/", get(index).post(create_game))
+        .route("/share", get(share_game))
         .nest("/static", staticfiles_service)
         .layer(AddExtensionLayer::new(templates));
 
@@ -56,8 +57,13 @@ async fn index(
     Ok(Html(body))
 }
 
-async fn create_game(Form(payload): Form<GameCreationPayload>) {
+async fn create_game(Form(payload): Form<GameCreationPayload>) -> impl IntoResponse {
     println!("NAME: {:?}", payload);
+    Redirect::to("share".parse().unwrap())
+}
+
+async fn share_game() -> Result<Html<String>, (StatusCode, String)> {
+    Ok(Html(String::from("4shared")))
 }
 
 #[derive(Deserialize, Debug)]
