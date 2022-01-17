@@ -1,0 +1,9 @@
+{% extends "base.html.tera" %}
+
+{% block title %}
+<title>{{ site_name }}</title>
+{% endblock title %}
+
+{% block content %}
+<h1>Welcome to {{ site_name }}</h1>
+{% endblock content %}
