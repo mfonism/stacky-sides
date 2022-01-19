@@ -4,10 +4,6 @@
 <title>{{ site_name }}</title>
 {% endblock title %}
 
-{% block extra_css %}
-<link rel="stylesheet" href="/static/game/css/styles.css">
-{% endblock extra_css %}
-
 {% block content %}
 <div class="container py-5">
     <div class="row justify-content-center">
@@ -16,12 +12,6 @@
             <p class="text-center">Create a New Game</p>
 
             <form action="/" method="post">
-                <!-- <div class="form-group row mb-3">
-                    <label for="nameInput" class="col-sm-2 col-form-label">Name</label>
-                    <div class="col-sm-10">
-                    <input type="text" class="form-control" id="nameInput" name="name" placeholder="Name">
-                    </div>
-                </div> -->
                 <div class="text-center">
                     <button type="submit" class="btn btn-primary px-4">Create Game</button>
                 </div>
@@ -31,7 +21,3 @@
     </div>
 </div>
 {% endblock content %}
-
-{% block extra_js %}
-<script src="/static/game/js/main.js"></script>
-{% endblock extra_js %}

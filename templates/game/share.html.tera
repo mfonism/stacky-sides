@@ -5,7 +5,7 @@
 {% endblock title %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="/static/game/css/game-share.css">
+<link rel="stylesheet" href="/static/game/css/share.css">
 {% endblock extra_css %}
 
 {% block content %}
@@ -31,5 +31,5 @@
 {% endblock content %}
 
 {% block extra_js %}
-<script src="/static/game/js/game-share.js"></script>
+<script src="/static/game/js/share.js"></script>
 {% endblock extra_js %}
