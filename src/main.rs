@@ -1,7 +1,7 @@
 use std::env;
 use std::net::SocketAddr;
 
-use axum::extract::{Extension, Form};
+use axum::extract::{Extension, Path};
 use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse, Redirect};
 use axum::routing::{get, get_service};
@@ -10,9 +10,9 @@ use chrono::{FixedOffset, Utc};
 use dotenv::dotenv;
 use sea_orm::prelude::*;
 use sea_orm::{Database, DatabaseConnection, Set};
-use serde::Deserialize;
 use tera::{Context, Tera};
 use tower_http::services::ServeDir;
+use url::Url;
 use uuid::Uuid;
 
 mod entity;
@@ -42,6 +42,9 @@ async fn main() {
             )
         });
 
+    let base_url = env::var("BASE_URL").expect("BASE_URL is not set in environment");
+    let base_url = Url::parse(&base_url).expect("Error parsing BASE_URL");
+
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set in environment");
     let conn = Database::connect(db_url)
         .await
@@ -53,8 +56,9 @@ async fn main() {
 
     let app = Router::new()
         .route("/", get(index).post(create_game))
-        .route("/share", get(share_game))
+        .route("/game/:uuid/share", get(share_game))
         .nest("/static", staticfiles_service)
+        .layer(AddExtensionLayer::new(base_url))
         .layer(AddExtensionLayer::new(conn))
         .layer(AddExtensionLayer::new(templates));
 
@@ -84,25 +88,37 @@ async fn index(
     Ok(Html(body))
 }
 
-async fn create_game(
-    Form(payload): Form<GameCreationPayload>,
-    Extension(ref conn): Extension<DatabaseConnection>,
-) -> impl IntoResponse {
+async fn create_game(Extension(ref conn): Extension<DatabaseConnection>) -> impl IntoResponse {
     let game = entity::game::ActiveModel {
         uuid: Set(Uuid::new_v4()),
         created_at: Set(Utc::now().with_timezone(&FixedOffset::east(0))),
     };
 
     let game = game.insert(conn).await.expect("cannot create game");
+    let path = format!("/game/{}/share", game.uuid);
 
-    println!("{:?}", payload);
-    println!("{:?}", game);
-    Redirect::to("share".parse().unwrap())
+    Redirect::to(path.parse().unwrap())
 }
 
-async fn share_game() -> Result<Html<String>, (StatusCode, String)> {
-    Ok(Html(String::from("4shared")))
-}
+async fn share_game(
+    Path(game_id): Path<Uuid>,
+    Extension(ref templates): Extension<Tera>,
+    Extension(ref base_url): Extension<Url>,
+) -> Result<Html<String>, (StatusCode, String)> {
+    let path = format!("game/{}/play", game_id);
+    let game_url = base_url.join(&path).expect("cannot create game play url");
 
-#[derive(Deserialize, Debug)]
-struct GameCreationPayload {}
+    let mut context = Context::new();
+    context.insert("game_url", &game_url);
+    context.insert("site_name", "Stacky Sides");
+    let body = templates
+        .render("game/share.html.tera", &context)
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                String::from("Template error"),
+            )
+        })?;
+
+    Ok(Html(body))
+}

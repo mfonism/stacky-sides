@@ -1,0 +1,16 @@
+.share {
+  background-color: #eee;
+  border-radius: 6px;
+  font-family: monospace;
+  cursor: pointer;
+}
+
+.share .bi {
+  font-size: 18px;
+}
+
+.share .bi.bi-check2,
+.share:hover .bi.bi-clipboard,
+.share .bi.bi-clipboard:hover {
+  color: cornflowerblue;
+}
