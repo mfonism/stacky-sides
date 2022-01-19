@@ -15,7 +15,7 @@ use tera::{Context, Tera};
 use tower_http::services::ServeDir;
 use uuid::Uuid;
 
-mod entities;
+mod entity;
 
 #[tokio::main]
 async fn main() {
@@ -47,7 +47,7 @@ async fn main() {
         .await
         .expect("Database connection failed");
 
-    entities::setup::create_game_table(&conn)
+    entity::setup::create_game_table(&conn)
         .await
         .expect("Cannot create game table");
 
@@ -88,7 +88,7 @@ async fn create_game(
     Form(payload): Form<GameCreationPayload>,
     Extension(ref conn): Extension<DatabaseConnection>,
 ) -> impl IntoResponse {
-    let game = entities::game::ActiveModel {
+    let game = entity::game::ActiveModel {
         uuid: Set(Uuid::new_v4()),
         created_at: Set(Utc::now().with_timezone(&FixedOffset::east(0))),
     };
