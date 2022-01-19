@@ -137,6 +137,7 @@ async fn play_game(
 
     let mut context = Context::new();
     context.insert("site_name", "Stacky Sides");
+    context.insert("dim", &(0..7).collect::<Vec<usize>>());
     let body = templates
         .render("game/play.html.tera", &context)
         .map_err(|_| {

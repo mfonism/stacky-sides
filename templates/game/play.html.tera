@@ -11,7 +11,7 @@
 {% block content %}
 <div class="container pt-5">
     <div class="row justify-content-center">
-        <h1 class="h2 text-center">&lt; stacky sides &sol;&gt;</h1>
+        <h1 class="h2 text-center">&lt; {{ site_name }} &sol;&gt;</h1>
     </div>    
 </div>
 
@@ -38,57 +38,14 @@
         <!-- game board column -->
         <div class="col-sm-7 order-sm-2 col-md-5 col-lg-4 mt-3">
             <div class="game-card mx-auto d-flex justify-content-center align-content-center flex-wrap">
-                <div class="cell white"></div>
-                <div class="cell ball black"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
-                <div class="cell"></div>
+                {% for _ in dim %}
+                    {% for _ in dim %}
+                        <div class="cell"></div>
+                    {% endfor %}
+                {% endfor %}
             </div>
         </div>
+
     </div>
 </div>
 {% endblock content %}
