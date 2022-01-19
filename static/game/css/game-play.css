@@ -1,0 +1,51 @@
+h1 {
+  font-variant: small-caps;
+}
+
+.player-card .bi {
+  font-size: 56px;
+  border-radius: 4px;
+  background-color: firebrick;
+}
+
+.player-card.black .bi {
+  color: black;
+}
+
+.player-card.white .bi {
+  color: white;
+}
+
+.game-card {
+  border: 1px solid black;
+  border-radius: 4px;
+  margin: 8px auto;
+  padding: 12px;
+  width: 252px;
+  height: 252px;
+  background-color: firebrick;
+}
+
+.game-card .cell {
+  height: 28px;
+  width: 28px;
+  margin: 2px;
+  border-radius: 50%;
+  background: khaki;
+  border: 1px solid black;
+}
+
+.cell.black,
+.cell.white {
+  border: none;
+}
+
+.cell.black {
+  background: black;
+  background: radial-gradient(circle at 100px 100px, #e8eff7, #000);
+}
+
+.cell.white {
+  background: white;
+  background: radial-gradient(circle at 100px 100px, #000307, rgb(253, 242, 242));
+}

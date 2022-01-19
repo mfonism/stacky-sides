@@ -1,0 +1,98 @@
+{% extends "base.html.tera" %}
+
+{% block title %}
+<title>{{ site_name }}</title>
+{% endblock title %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/game/css/game-play.css">
+{% endblock extra_css %}
+
+{% block content %}
+<div class="container pt-5">
+    <div class="row justify-content-center">
+        <h1 class="h2 text-center">&lt; stacky sides &sol;&gt;</h1>
+    </div>    
+</div>
+
+<div class="container pb-5 pt-2 pt-md-3 pt-lg-4 pt-xl-5">
+    <div class="row justify-content-center">
+        <!-- player column -->
+        <div class="col-6 col-sm-2 order-sm-1">
+            <div class="player-card black text-center">
+                <i class="bi bi-person-fill"></i>
+                <i class="bi bi-person-workspace d-none"></i>
+                <div>Player 1 <span class="description"></span></div>
+            </div>
+        </div>
+
+        <!-- player column -->
+        <div class="col-6 col-sm-2 order-sm-3">
+            <div class="player-card white text-center">
+                <i class="bi bi-person-fill"></i>
+                <i class="bi bi-person-workspace d-none"></i>
+                <div>Player 2 <span class="description"></span></div>
+            </div>
+        </div>
+
+        <!-- game board column -->
+        <div class="col-sm-7 order-sm-2 col-md-5 col-lg-4 mt-3">
+            <div class="game-card mx-auto d-flex justify-content-center align-content-center flex-wrap">
+                <div class="cell white"></div>
+                <div class="cell ball black"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+                <div class="cell"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<script src="/static/game/js/game-play.js"></script>
+{% endblock extra_js %}

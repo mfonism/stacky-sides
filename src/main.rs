@@ -57,6 +57,7 @@ async fn main() {
     let app = Router::new()
         .route("/", get(index).post(create_game))
         .route("/game/:uuid/share", get(share_game))
+        .route("/game/:uuid/play", get(play_game))
         .nest("/static", staticfiles_service)
         .layer(AddExtensionLayer::new(base_url))
         .layer(AddExtensionLayer::new(conn))
@@ -113,6 +114,31 @@ async fn share_game(
     context.insert("site_name", "Stacky Sides");
     let body = templates
         .render("game/share.html.tera", &context)
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                String::from("Template error"),
+            )
+        })?;
+
+    Ok(Html(body))
+}
+
+async fn play_game(
+    Path(game_id): Path<Uuid>,
+    Extension(ref conn): Extension<DatabaseConnection>,
+    Extension(ref templates): Extension<Tera>,
+) -> Result<Html<String>, (StatusCode, String)> {
+    let _game = entity::game::Entity::find_by_id(game_id)
+        .one(conn)
+        .await
+        .expect("game not found")
+        .unwrap();
+
+    let mut context = Context::new();
+    context.insert("site_name", "Stacky Sides");
+    let body = templates
+        .render("game/play.html.tera", &context)
         .map_err(|_| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
