@@ -3,13 +3,15 @@ use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse, Redirect};
 use chrono::{FixedOffset, Utc};
 use sea_orm::prelude::*;
-use sea_orm::{DatabaseConnection, Set};
+use sea_orm::{DatabaseConnection, DbErr, Set};
 use tera::{Context, Tera};
 use url::Url;
 use uuid::Uuid;
 
 use crate::cookies::Cookies;
-use crate::entity::game;
+use crate::entity::game::{
+    ActiveModel as GameActiveModel, Entity as GameEntity, Model as GameModel,
+};
 
 pub async fn index(
     Extension(ref templates): Extension<Tera>,
@@ -33,7 +35,7 @@ pub async fn create_game(
     Extension(ref conn): Extension<DatabaseConnection>,
     cookies: Cookies,
 ) -> impl IntoResponse {
-    let game = game::ActiveModel {
+    let game: GameActiveModel = GameActiveModel {
         uuid: Set(Uuid::new_v4()),
         created_at: Set(Utc::now().with_timezone(&FixedOffset::east(0))),
         player1_key: Set(Some(cookies.session_id)), // creator is player1
@@ -53,7 +55,7 @@ pub async fn share_game(
     Extension(ref base_url): Extension<Url>,
     _cookies: Cookies,
 ) -> Result<Html<String>, (StatusCode, String)> {
-    let _game = game::Entity::find_by_id(game_id)
+    let _game: GameModel = GameEntity::find_by_id(game_id)
         .one(conn)
         .await
         .expect("game not found")
@@ -81,16 +83,77 @@ pub async fn play_game(
     Path(game_id): Path<Uuid>,
     Extension(ref conn): Extension<DatabaseConnection>,
     Extension(ref templates): Extension<Tera>,
-    _cookies: Cookies,
+    cookies: Cookies,
 ) -> Result<Html<String>, (StatusCode, String)> {
-    let _game = game::Entity::find_by_id(game_id)
+    let mut game: GameModel = GameEntity::find_by_id(game_id)
         .one(conn)
         .await
         .expect("game not found")
         .unwrap();
 
+    // assign player number
+    // 0 -- observer
+    // 1 -- black
+    // 2 -- white
+    let mut player_num = 0;
+    let session_id = cookies.session_id;
+    game = match (game.player1_key, game.player2_key) {
+        (None, None) => {
+            player_num = 1;
+            assign_player(game, conn, session_id, player_num)
+                .await
+                .map_err(|_| {
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        String::from("Database error"),
+                    )
+                })?
+        }
+        (None, Some(key2)) => {
+            if key2 == session_id {
+                player_num = 2;
+                game
+            } else {
+                player_num = 1;
+                assign_player(game, conn, session_id, player_num)
+                    .await
+                    .map_err(|_| {
+                        (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            String::from("Database error"),
+                        )
+                    })?
+            }
+        }
+        (Some(key1), None) => {
+            if key1 == session_id {
+                player_num = 1;
+                game
+            } else {
+                player_num = 2;
+                assign_player(game, conn, session_id, player_num)
+                    .await
+                    .map_err(|_| {
+                        (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            String::from("Database error"),
+                        )
+                    })?
+            }
+        }
+        (Some(key1), Some(key2)) => {
+            if key1 == session_id {
+                player_num = 1;
+            } else if key2 == session_id {
+                player_num = 2;
+            }
+            game
+        }
+    };
+
     let mut context = Context::new();
     context.insert("site_name", "Stacky Sides");
+    context.insert("player_num", &player_num);
     context.insert("dim", &(0..7).collect::<Vec<usize>>());
     let body = templates
         .render("game/play.html.tera", &context)
@@ -102,4 +165,26 @@ pub async fn play_game(
         })?;
 
     Ok(Html(body))
+}
+
+async fn assign_player(
+    game: GameModel,
+    conn: &DatabaseConnection,
+    session_id: Uuid,
+    player_num: usize,
+) -> Result<GameModel, DbErr> {
+    let mut game: GameActiveModel = game.into();
+    match player_num {
+        1 => {
+            game.player1_key = Set(Some(session_id));
+        }
+        2 => {
+            game.player2_key = Set(Some(session_id));
+        }
+        _ => {
+            panic!("cannot assign player with key greater than 2 or less than 1");
+        }
+    }
+    let game: GameModel = game.update(conn).await?;
+    Ok(game)
 }

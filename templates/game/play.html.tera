@@ -22,7 +22,7 @@
             <div class="player-card black text-center">
                 <i class="bi bi-person-fill"></i>
                 <i class="bi bi-person-workspace d-none"></i>
-                <div>Player 1 <span class="description"></span></div>
+                <div>Player 1 {% if player_num == 1 %} <span class="description">(You)</span>{% endif %}</div>
             </div>
         </div>
 
@@ -31,7 +31,7 @@
             <div class="player-card white text-center">
                 <i class="bi bi-person-fill"></i>
                 <i class="bi bi-person-workspace d-none"></i>
-                <div>Player 2 <span class="description"></span></div>
+                <div>Player 2 {% if player_num == 2 %} <span class="description">(You)</span>{% endif %}</div>
             </div>
         </div>
 
