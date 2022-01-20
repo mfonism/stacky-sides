@@ -75,7 +75,7 @@ pub async fn play_game(
     Extension(ref templates): Extension<Tera>,
     cookies: Cookies,
 ) -> Result<Html<String>, (StatusCode, String)> {
-    let mut game: GameModel = GameEntity::find_by_id(game_id)
+    let game: GameModel = GameEntity::find_by_id(game_id)
         .one(conn)
         .await
         .expect("game not found")
