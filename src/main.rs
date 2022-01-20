@@ -110,10 +110,17 @@ async fn create_game(Extension(ref conn): Extension<DatabaseConnection>) -> impl
 
 async fn share_game(
     Path(game_id): Path<Uuid>,
+    Extension(ref conn): Extension<DatabaseConnection>,
     Extension(ref templates): Extension<Tera>,
     Extension(ref base_url): Extension<Url>,
     _cookies: Cookies,
 ) -> Result<Html<String>, (StatusCode, String)> {
+    let _game = game::Entity::find_by_id(game_id)
+        .one(conn)
+        .await
+        .expect("game not found")
+        .unwrap();
+
     let path = format!("game/{}/play", game_id);
     let game_url = base_url.join(&path).expect("cannot create game play url");
 
