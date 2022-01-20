@@ -4,7 +4,7 @@ use axum::http::StatusCode;
 use tower_cookies::{Cookie as TowerCookie, Cookies as TowerCookies};
 use uuid::Uuid;
 
-const COOKIE_NAME: &str = "stacy_sides_cookie";
+const COOKIE_NAME: &str = "stacky_sides_cookie";
 
 pub struct Cookies {
     pub session_id: Uuid,
@@ -28,14 +28,10 @@ where
             "Can't extract cookies. Is `CookieManagerLayer` enabled?",
         ))?;
 
-        let new_uuid = Uuid::new_v4();
         let session_id = cookies
             .get(COOKIE_NAME)
             .and_then(|cookie| cookie.value().parse().ok())
-            .unwrap_or(new_uuid);
-
-        println!("new id: {}", new_uuid);
-        println!("set id: {}", session_id);
+            .unwrap_or(Uuid::new_v4());
 
         cookies.add(TowerCookie::new(COOKIE_NAME, session_id.to_string()));
 
