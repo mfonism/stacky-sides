@@ -7,6 +7,8 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub uuid: Uuid,
     pub created_at: DateTimeWithTimeZone,
+    pub player1_key: Option<Uuid>,
+    pub player2_key: Option<Uuid>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

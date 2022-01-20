@@ -33,6 +33,7 @@ pub async fn create_game(Extension(ref conn): Extension<DatabaseConnection>) -> 
     let game = game::ActiveModel {
         uuid: Set(Uuid::new_v4()),
         created_at: Set(Utc::now().with_timezone(&FixedOffset::east(0))),
+        ..Default::default()
     };
 
     let game = game.insert(conn).await.expect("cannot create game");

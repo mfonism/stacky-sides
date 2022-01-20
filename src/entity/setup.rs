@@ -24,6 +24,8 @@ pub async fn create_game_table(conn: &DbConn) -> Result<ExecResult, DbErr> {
                 .timestamp_with_time_zone()
                 .not_null(),
         )
+        .col(ColumnDef::new(game::Column::Player1Key).uuid())
+        .col(ColumnDef::new(game::Column::Player2Key).uuid())
         .to_owned();
 
     create_table(conn, &stmt).await
