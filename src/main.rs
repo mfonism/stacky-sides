@@ -11,11 +11,15 @@ use dotenv::dotenv;
 use sea_orm::prelude::*;
 use sea_orm::{Database, DatabaseConnection, Set};
 use tera::{Context, Tera};
+use tower_cookies::CookieManagerLayer;
 use tower_http::services::ServeDir;
 use url::Url;
 use uuid::Uuid;
 
+mod cookies;
 mod entity;
+
+use cookies::Cookies;
 
 #[tokio::main]
 async fn main() {
@@ -61,7 +65,8 @@ async fn main() {
         .nest("/static", staticfiles_service)
         .layer(AddExtensionLayer::new(base_url))
         .layer(AddExtensionLayer::new(conn))
-        .layer(AddExtensionLayer::new(templates));
+        .layer(AddExtensionLayer::new(templates))
+        .layer(CookieManagerLayer::new());
 
     let address = SocketAddr::from(([127, 0, 0, 1], 8000));
     tracing::debug!("listening on {}...", address);
@@ -74,6 +79,7 @@ async fn main() {
 
 async fn index(
     Extension(ref templates): Extension<Tera>,
+    _cookies: Cookies,
 ) -> Result<Html<String>, (StatusCode, String)> {
     let mut context = Context::new();
     context.insert("site_name", "Stacky Sides");
@@ -105,6 +111,7 @@ async fn share_game(
     Path(game_id): Path<Uuid>,
     Extension(ref templates): Extension<Tera>,
     Extension(ref base_url): Extension<Url>,
+    _cookies: Cookies,
 ) -> Result<Html<String>, (StatusCode, String)> {
     let path = format!("game/{}/play", game_id);
     let game_url = base_url.join(&path).expect("cannot create game play url");
@@ -128,6 +135,7 @@ async fn play_game(
     Path(game_id): Path<Uuid>,
     Extension(ref conn): Extension<DatabaseConnection>,
     Extension(ref templates): Extension<Tera>,
+    _cookies: Cookies,
 ) -> Result<Html<String>, (StatusCode, String)> {
     let _game = entity::game::Entity::find_by_id(game_id)
         .one(conn)
