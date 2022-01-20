@@ -20,6 +20,7 @@ mod cookies;
 mod entity;
 
 use cookies::Cookies;
+use entity::game;
 
 #[tokio::main]
 async fn main() {
@@ -96,7 +97,7 @@ async fn index(
 }
 
 async fn create_game(Extension(ref conn): Extension<DatabaseConnection>) -> impl IntoResponse {
-    let game = entity::game::ActiveModel {
+    let game = game::ActiveModel {
         uuid: Set(Uuid::new_v4()),
         created_at: Set(Utc::now().with_timezone(&FixedOffset::east(0))),
     };
@@ -137,7 +138,7 @@ async fn play_game(
     Extension(ref templates): Extension<Tera>,
     _cookies: Cookies,
 ) -> Result<Html<String>, (StatusCode, String)> {
-    let _game = entity::game::Entity::find_by_id(game_id)
+    let _game = game::Entity::find_by_id(game_id)
         .one(conn)
         .await
         .expect("game not found")
