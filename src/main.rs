@@ -1,7 +1,6 @@
 use std::env;
 use std::net::SocketAddr;
 
-use axum::http::StatusCode;
 use axum::routing::{get, get_service};
 use axum::{AddExtensionLayer, Router, Server};
 use dotenv::dotenv;
@@ -16,7 +15,7 @@ mod entity;
 mod handlers;
 
 use entity::setup as entity_setup;
-use handlers::{create_game, index, play_game, share_game};
+use handlers::{create_game, handle_staticfiles_server_error, index, play_game, share_game};
 
 #[tokio::main]
 async fn main() {
@@ -36,12 +35,7 @@ async fn main() {
     };
 
     let staticfiles_service =
-        get_service(ServeDir::new("./static/")).handle_error(|error: std::io::Error| async move {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Unhandled internal error: {}", error),
-            )
-        });
+        get_service(ServeDir::new("./static/")).handle_error(handle_staticfiles_server_error);
 
     let base_url = env::var("BASE_URL").expect("BASE_URL is not set in environment");
     let base_url = Url::parse(&base_url).expect("Error parsing BASE_URL");

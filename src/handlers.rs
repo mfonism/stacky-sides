@@ -4,7 +4,7 @@ use axum::response::{Html, IntoResponse, Redirect};
 use chrono::{FixedOffset, Utc};
 use sea_orm::prelude::*;
 use sea_orm::{DatabaseConnection, DbErr, Set};
-use tera::{Context, Tera};
+use tera::{Context, Error as TemplateError, Tera};
 use url::Url;
 use uuid::Uuid;
 
@@ -21,12 +21,7 @@ pub async fn index(
     context.insert("site_name", "Stacky Sides");
     let body = templates
         .render("game/index.html.tera", &context)
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("Template error"),
-            )
-        })?;
+        .map_err(handle_template_error)?;
 
     Ok(Html(body))
 }
@@ -69,12 +64,7 @@ pub async fn share_game(
     context.insert("site_name", "Stacky Sides");
     let body = templates
         .render("game/share.html.tera", &context)
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("Template error"),
-            )
-        })?;
+        .map_err(handle_template_error)?;
 
     Ok(Html(body))
 }
@@ -97,48 +87,31 @@ pub async fn play_game(
     // 2 -- white
     let mut player_num = 0;
     let session_id = cookies.session_id;
-    game = match (game.player1_key, game.player2_key) {
+    match (game.player1_key, game.player2_key) {
         (None, None) => {
             player_num = 1;
             assign_player(game, conn, session_id, player_num)
                 .await
-                .map_err(|_| {
-                    (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        String::from("Database error"),
-                    )
-                })?
+                .map_err(handle_db_error)?;
         }
         (None, Some(key2)) => {
             if key2 == session_id {
                 player_num = 2;
-                game
             } else {
                 player_num = 1;
                 assign_player(game, conn, session_id, player_num)
                     .await
-                    .map_err(|_| {
-                        (
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                            String::from("Database error"),
-                        )
-                    })?
+                    .map_err(handle_db_error)?;
             }
         }
         (Some(key1), None) => {
             if key1 == session_id {
                 player_num = 1;
-                game
             } else {
                 player_num = 2;
                 assign_player(game, conn, session_id, player_num)
                     .await
-                    .map_err(|_| {
-                        (
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                            String::from("Database error"),
-                        )
-                    })?
+                    .map_err(handle_db_error)?;
             }
         }
         (Some(key1), Some(key2)) => {
@@ -147,7 +120,6 @@ pub async fn play_game(
             } else if key2 == session_id {
                 player_num = 2;
             }
-            game
         }
     };
 
@@ -157,12 +129,7 @@ pub async fn play_game(
     context.insert("dim", &(0..7).collect::<Vec<usize>>());
     let body = templates
         .render("game/play.html.tera", &context)
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("Template error"),
-            )
-        })?;
+        .map_err(handle_template_error)?;
 
     Ok(Html(body))
 }
@@ -187,4 +154,25 @@ async fn assign_player(
     }
     let game: GameModel = game.update(conn).await?;
     Ok(game)
+}
+
+pub fn handle_db_error(error: DbErr) -> (StatusCode, String) {
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!("Database error: {}", error),
+    )
+}
+
+pub fn handle_template_error(error: TemplateError) -> (StatusCode, String) {
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!("Template error: {}", error),
+    )
+}
+
+pub async fn handle_staticfiles_server_error(error: std::io::Error) -> (StatusCode, String) {
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!("Static files server error: {}", error),
+    )
 }
