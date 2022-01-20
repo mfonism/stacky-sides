@@ -29,10 +29,14 @@ pub async fn index(
     Ok(Html(body))
 }
 
-pub async fn create_game(Extension(ref conn): Extension<DatabaseConnection>) -> impl IntoResponse {
+pub async fn create_game(
+    Extension(ref conn): Extension<DatabaseConnection>,
+    cookies: Cookies,
+) -> impl IntoResponse {
     let game = game::ActiveModel {
         uuid: Set(Uuid::new_v4()),
         created_at: Set(Utc::now().with_timezone(&FixedOffset::east(0))),
+        player1_key: Set(Some(cookies.session_id)), // creator is player1
         ..Default::default()
     };
 
