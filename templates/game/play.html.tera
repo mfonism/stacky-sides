@@ -22,7 +22,7 @@
             <div class="player-card black text-center">
                 <i class="bi bi-person-fill"></i>
                 <i class="bi bi-person-workspace d-none"></i>
-                <div>Player 1 {% if player_num == 1 %} <span class="description">(You)</span>{% endif %}</div>
+                <div class="description">Player 1</div>
             </div>
         </div>
 
@@ -31,16 +31,16 @@
             <div class="player-card white text-center">
                 <i class="bi bi-person-fill"></i>
                 <i class="bi bi-person-workspace d-none"></i>
-                <div>Player 2 {% if player_num == 2 %} <span class="description">(You)</span>{% endif %}</div>
+                <div class="description">Player 2</div>
             </div>
         </div>
 
         <!-- game board column -->
         <div class="col-sm-7 order-sm-2 col-md-5 col-lg-4 mt-3">
             <div class="game-card mx-auto d-flex justify-content-center align-content-center flex-wrap">
-                {% for row in dim %}
-                    {% for col in dim %}
-                        <div data-row={{ row }} data-col={{ col }} class="cell"></div>
+                {% for _ in dim %}
+                    {% for _ in dim %}
+                        <div class="cell"></div>
                     {% endfor %}
                 {% endfor %}
             </div>
@@ -49,6 +49,8 @@
     </div>
 </div>
 <script id="gameWsUrl" type="application/json">{{ game_ws_url }}</script>
+<script id="gameBoardData" type="application/json">{{ game_board }}</script>
+<script id="playerNum" type="application/json">{{ player_num }}</script>
 {% endblock content %}
 
 {% block extra_js %}

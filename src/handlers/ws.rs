@@ -114,6 +114,9 @@ async fn ws_game_play_handler(
                 match msg {
                     GameMessage::Selection { row, col } => {
                         println!("Made a selection of {:?}, {:?}", row, col);
+                        // persist this selection against game state
+                        // broadcast to everyone to refresh board
+                        // actually, send new board to everyone
                     }
                     GameMessage::End { winner } => {
                         println!("The winner is player {:?}", winner);

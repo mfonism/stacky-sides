@@ -6,6 +6,7 @@ use axum::response::{Html, IntoResponse, Redirect};
 use chrono::{FixedOffset, Utc};
 use sea_orm::prelude::*;
 use sea_orm::{DatabaseConnection, DbErr, Set};
+use serde_json::json;
 use tera::{Context, Tera};
 use url::Url;
 use uuid::Uuid;
@@ -39,6 +40,7 @@ pub async fn create_game(
         uuid: Set(Uuid::new_v4()),
         created_at: Set(Utc::now().with_timezone(&FixedOffset::east(0))),
         player1_key: Set(Some(cookies.session_id)), // creator is player1
+        board: Set(json!(init_game_board())),
         ..Default::default()
     };
 
@@ -89,6 +91,8 @@ pub async fn play_game(
         .expect("game not found")
         .unwrap();
 
+    let game_board = game.board.clone();
+
     // assign player number
     // 0 -- observer
     // 1 -- black
@@ -137,6 +141,7 @@ pub async fn play_game(
     let mut context = Context::new();
     context.insert("site_name", "Stacky Sides");
     context.insert("player_num", &player_num);
+    context.insert("game_board", &game_board);
     context.insert("dim", &(0..7).collect::<Vec<usize>>());
     context.insert("game_ws_url", &game_ws_url);
     let body = templates
@@ -176,4 +181,14 @@ fn get_ws_url_for_path(path: String, mut base_url: Url) -> String {
         .join(&path)
         .expect("cannot create game play ws url");
     serde_json::to_string(&game_ws_url).expect("cannot serialize game play ws url")
+}
+
+fn init_game_board() -> Vec<Vec<u8>> {
+    let mut res = vec![];
+
+    for _ in 0..7 {
+        res.push(vec![0, 0, 0, 0, 0, 0, 0]);
+    }
+
+    res
 }
