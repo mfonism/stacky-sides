@@ -17,7 +17,7 @@ mod handlers;
 use entity::setup as entity_setup;
 use handlers::error::handle_staticfiles_server_error;
 use handlers::http::{create_game, index, play_game, share_game};
-use handlers::ws::ws_play_game;
+use handlers::ws::{ws_play_game, GamingChannels};
 
 #[tokio::main]
 async fn main() {
@@ -59,6 +59,7 @@ async fn main() {
         .nest("/static", staticfiles_service)
         .layer(AddExtensionLayer::new(base_url))
         .layer(AddExtensionLayer::new(conn))
+        .layer(AddExtensionLayer::new(GamingChannels::new_in_arc()))
         .layer(AddExtensionLayer::new(templates))
         .layer(CookieManagerLayer::new());
 

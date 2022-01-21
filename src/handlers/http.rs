@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::extract::{Extension, Path};
 use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse, Redirect};
@@ -9,6 +11,7 @@ use url::Url;
 use uuid::Uuid;
 
 use super::error::{handle_db_error, handle_template_error};
+use super::ws::GamingChannels;
 use crate::cookies::Cookies;
 use crate::entity::game::{
     ActiveModel as GameActiveModel, Entity as GameEntity, Model as GameModel,
@@ -29,6 +32,7 @@ pub async fn index(
 
 pub async fn create_game(
     Extension(ref conn): Extension<DatabaseConnection>,
+    Extension(gaming_channels): Extension<Arc<GamingChannels>>,
     cookies: Cookies,
 ) -> impl IntoResponse {
     let game: GameActiveModel = GameActiveModel {
@@ -40,6 +44,8 @@ pub async fn create_game(
 
     let game = game.insert(conn).await.expect("cannot create game");
     let path = format!("/game/{}/share", game.uuid);
+
+    gaming_channels.insert_channel(game.uuid);
 
     Redirect::to(path.parse().unwrap())
 }
