@@ -125,7 +125,7 @@ pub async fn play_game(
         }
     };
 
-    let path = format!("game/{}/play", game_id);
+    let path = format!("/ws/game/{}/play", game_id);
     let game_ws_url = get_ws_url_for_path(path, base_url.clone());
 
     let mut context = Context::new();
@@ -166,9 +166,6 @@ fn get_ws_url_for_path(path: String, mut base_url: Url) -> String {
     base_url
         .set_scheme("ws")
         .expect("cannot change BASE_URL's scheme");
-    base_url
-        .set_port(Some(3000))
-        .expect("cannot change BASE_URL's port");
     let game_ws_url = base_url
         .join(&path)
         .expect("cannot create game play ws url");
