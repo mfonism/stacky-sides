@@ -1,10 +1,28 @@
 class GameUI {
-  constructor() {}
+  constructor(playerNum) {
+    this.playerNum = playerNum;
+  }
 
   refreshGameBoard(boardData) {
     document
       .querySelector(".game-card")
       .replaceWith(this.createGameCard(boardData));
+
+    this.canPlayNext = this.checkTurn(boardData) == this.playerNum;
+  }
+
+  checkTurn(boardData) {
+    // which player's turn is it?
+    let res = [0, 0, 0];
+    boardData.forEach((row) => {
+      row.forEach((cellData) => {
+        if (res[cellData] !== 0) {
+          res[cellData] += 1;
+        }
+      });
+    });
+
+    return res[1] > res[2] ? 2 : 1;
   }
 
   createGameCard(boardData) {
@@ -42,9 +60,17 @@ class GameUI {
     return cellElt;
   }
 
-  attachClickListeners(websocket, playerNum) {
+  attachClickListeners(websocket) {
+    let playerNum = this.playerNum;
+
     document.querySelectorAll(".cell").forEach((cell) => {
       cell.addEventListener("click", (event) => {
+        // check whether it is player's move
+        if (!this.canPlayNext) {
+          return;
+        }
+        this.canPlayNext = false;
+
         if (playerNum == 1) {
           event.target.classList.add("black");
         } else if (playerNum == 2) {
@@ -70,11 +96,11 @@ window.addEventListener("DOMContentLoaded", (event) => {
     document.getElementById("playerNum").textContent
   );
 
-  let gameUI = new GameUI();
+  let gameUI = new GameUI(playerNum);
   gameUI.refreshGameBoard(gameBoardData);
 
   const websocket = new WebSocket(gamePlaySocketUrl);
-  gameUI.attachClickListeners(websocket, playerNum);
+  gameUI.attachClickListeners(websocket);
 
   websocket.onopen = function (event) {
     console.log(`Connection to ${gamePlaySocketUrl} opened!`);
