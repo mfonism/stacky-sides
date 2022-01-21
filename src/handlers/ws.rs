@@ -7,8 +7,7 @@ use sea_orm::DatabaseConnection;
 use uuid::Uuid;
 
 use crate::cookies::Cookies;
-use crate::entity::game::{ Entity as GameEntity, Model as GameModel,
-};
+use crate::entity::game::{Entity as GameEntity, Model as GameModel};
 
 pub async fn ws_play_game(
     ws: WebSocketUpgrade,

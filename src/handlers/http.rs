@@ -4,10 +4,11 @@ use axum::response::{Html, IntoResponse, Redirect};
 use chrono::{FixedOffset, Utc};
 use sea_orm::prelude::*;
 use sea_orm::{DatabaseConnection, DbErr, Set};
-use tera::{Context, Error as TemplateError, Tera};
+use tera::{Context, Tera};
 use url::Url;
 use uuid::Uuid;
 
+use super::error::{handle_db_error, handle_template_error};
 use crate::cookies::Cookies;
 use crate::entity::game::{
     ActiveModel as GameActiveModel, Entity as GameEntity, Model as GameModel,
@@ -161,7 +162,7 @@ async fn assign_player(
     Ok(game)
 }
 
-fn get_ws_url_for_path(path: String, mut base_url: Url) -> String  {
+fn get_ws_url_for_path(path: String, mut base_url: Url) -> String {
     base_url
         .set_scheme("ws")
         .expect("cannot change BASE_URL's scheme");
@@ -172,25 +173,4 @@ fn get_ws_url_for_path(path: String, mut base_url: Url) -> String  {
         .join(&path)
         .expect("cannot create game play ws url");
     serde_json::to_string(&game_ws_url).expect("cannot serialize game play ws url")
-}
-
-pub fn handle_db_error(error: DbErr) -> (StatusCode, String) {
-    (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        format!("Database error: {}", error),
-    )
-}
-
-pub fn handle_template_error(error: TemplateError) -> (StatusCode, String) {
-    (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        format!("Template error: {}", error),
-    )
-}
-
-pub async fn handle_staticfiles_server_error(error: std::io::Error) -> (StatusCode, String) {
-    (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        format!("Static files server error: {}", error),
-    )
 }

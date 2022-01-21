@@ -15,9 +15,8 @@ mod entity;
 mod handlers;
 
 use entity::setup as entity_setup;
-use handlers::http::{
-    create_game, handle_staticfiles_server_error, index, play_game, share_game
-};
+use handlers::error::handle_staticfiles_server_error;
+use handlers::http::{create_game, index, play_game, share_game};
 use handlers::ws::ws_play_game;
 
 #[tokio::main]
