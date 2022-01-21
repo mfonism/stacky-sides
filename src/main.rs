@@ -15,7 +15,10 @@ mod entity;
 mod handlers;
 
 use entity::setup as entity_setup;
-use handlers::{create_game, handle_staticfiles_server_error, index, play_game, share_game};
+use handlers::http::{
+    create_game, handle_staticfiles_server_error, index, play_game, share_game
+};
+use handlers::ws::ws_play_game;
 
 #[tokio::main]
 async fn main() {
@@ -53,6 +56,7 @@ async fn main() {
         .route("/", get(index).post(create_game))
         .route("/game/:uuid/share", get(share_game))
         .route("/game/:uuid/play", get(play_game))
+        .route("/ws/game/:uuid/play", get(ws_play_game))
         .nest("/static", staticfiles_service)
         .layer(AddExtensionLayer::new(base_url))
         .layer(AddExtensionLayer::new(conn))

@@ -48,6 +48,7 @@
 
     </div>
 </div>
+<script id="gameWsUrl" type="application/json">{{ game_ws_url }}</script>
 {% endblock content %}
 
 {% block extra_js %}

@@ -73,6 +73,7 @@ pub async fn play_game(
     Path(game_id): Path<Uuid>,
     Extension(ref conn): Extension<DatabaseConnection>,
     Extension(ref templates): Extension<Tera>,
+    Extension(ref base_url): Extension<Url>,
     cookies: Cookies,
 ) -> Result<Html<String>, (StatusCode, String)> {
     let game: GameModel = GameEntity::find_by_id(game_id)
@@ -123,10 +124,14 @@ pub async fn play_game(
         }
     };
 
+    let path = format!("game/{}/play", game_id);
+    let game_ws_url = get_ws_url_for_path(path, base_url.clone());
+
     let mut context = Context::new();
     context.insert("site_name", "Stacky Sides");
     context.insert("player_num", &player_num);
     context.insert("dim", &(0..7).collect::<Vec<usize>>());
+    context.insert("game_ws_url", &game_ws_url);
     let body = templates
         .render("game/play.html.tera", &context)
         .map_err(handle_template_error)?;
@@ -154,6 +159,19 @@ async fn assign_player(
     }
     let game: GameModel = game.update(conn).await?;
     Ok(game)
+}
+
+fn get_ws_url_for_path(path: String, mut base_url: Url) -> String  {
+    base_url
+        .set_scheme("ws")
+        .expect("cannot change BASE_URL's scheme");
+    base_url
+        .set_port(Some(3000))
+        .expect("cannot change BASE_URL's port");
+    let game_ws_url = base_url
+        .join(&path)
+        .expect("cannot create game play ws url");
+    serde_json::to_string(&game_ws_url).expect("cannot serialize game play ws url")
 }
 
 pub fn handle_db_error(error: DbErr) -> (StatusCode, String) {
