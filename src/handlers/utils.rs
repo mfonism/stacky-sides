@@ -1,13 +1,21 @@
 #[derive(Debug)]
 pub enum GameMessage {
-    Selection { row: u16, col: u16 },
-    End { winner: u16 }, // 1 or 2 (or 0, in the case of a draw)
+    Board { state_str: String },
+    Selection { row: u8, col: u8 },
+    End { winner: u8 }, // 1 or 2 (or 0, in the case of a draw)
 }
 
 impl GameMessage {
     pub fn read(text: String) -> Result<Self, &'static str> {
-        let _text = text.to_lowercase();
-        let parts = _text.split(" ").collect::<Vec<&str>>();
+        let text = text.to_lowercase();
+
+        if text.starts_with("board") {
+            return Ok(Self::Board {
+                state_str: text.strip_prefix("board").unwrap().trim().to_string(),
+            });
+        }
+
+        let parts = text.split(" ").collect::<Vec<&str>>();
         if parts.len() == 0 {
             return Err("empty message!");
         }
@@ -19,7 +27,7 @@ impl GameMessage {
             return Err("could not parse selection message");
         }
 
-        if parts[0] == "End" && parts.len() == 2 {
+        if parts[0] == "end" && parts.len() == 2 {
             if let Ok(winner) = parts[1].parse() {
                 return Ok(GameMessage::End { winner });
             }

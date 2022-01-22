@@ -38,9 +38,9 @@
         <!-- game board column -->
         <div class="col-sm-7 order-sm-2 col-md-5 col-lg-4 mt-3">
             <div class="game-card mx-auto d-flex justify-content-center align-content-center flex-wrap">
-                {% for _ in dim %}
-                    {% for _ in dim %}
-                        <div class="cell"></div>
+                {% for i in dim %}
+                    {% for j in dim %}
+                        <div data-row="{{ i }}" data-col="{{ j }}" class="cell disabled"></div>
                     {% endfor %}
                 {% endfor %}
             </div>

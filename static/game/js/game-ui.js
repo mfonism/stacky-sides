@@ -1,5 +1,6 @@
 class GameUI {
   constructor(playerNum, gameBoardData) {
+    this.canPlayNext = false;
     this.playerNum = playerNum;
     this.gameBoardData = gameBoardData;
   }
@@ -7,20 +8,20 @@ class GameUI {
   refreshGameBoard() {
     document.querySelector(".game-card").replaceWith(this.createGameCard());
 
-    this.canPlayNext = this.checkTurn() == this.playerNum;
+    this.canPlayNext = (this.checkTurn() == this.playerNum);
   }
 
   checkTurn() {
     // which player's turn is it?
     let res = [0, 0, 0];
-    this.gameBoardData.forEach((row) => {
-      row.forEach((cellData) => {
-        if (res[cellData] !== 0) {
+
+    for (let row of this.gameBoardData) {
+      for (let cellData of row) {
+        if (cellData !== 0) {
           res[cellData] += 1;
         }
-      });
-    });
-
+      }
+    }
     return res[1] > res[2] ? 2 : 1;
   }
 

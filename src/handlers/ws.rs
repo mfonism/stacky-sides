@@ -7,13 +7,17 @@ use axum::response::IntoResponse;
 use futures::sink::SinkExt;
 use futures::stream::StreamExt;
 use sea_orm::prelude::*;
-use sea_orm::DatabaseConnection;
+use sea_orm::{DatabaseConnection, Set};
+use serde_json;
+use serde_json::json;
 use tokio::sync::broadcast;
 use uuid::Uuid;
 
 use super::utils::GameMessage;
 use crate::cookies::Cookies;
-use crate::entity::game::{Entity as GameEntity, Model as GameModel};
+use crate::entity::game::{
+    ActiveModel as GameActiveModel, Entity as GameEntity, Model as GameModel,
+};
 
 type GameID = Uuid;
 
@@ -94,17 +98,21 @@ async fn ws_game_play_handler(
     // and possibly sending them back to own client
     let mut send_task = tokio::spawn(async move {
         while let Ok(msg) = channel_rx.recv().await {
-            if own_tx
-                .send(Message::Text(String::from("Hey hey")))
-                .await
-                .is_err()
-            {
-                break;
+            if let Ok(msg) = GameMessage::read(msg) {
+                match msg {
+                    GameMessage::Board { state_str } => {
+                        if own_tx.send(Message::Text(state_str)).await.is_err() {
+                            break;
+                        }
+                    }
+                    _ => {}
+                }
             }
         }
     });
 
     let channel_tx = channel_tx.clone();
+    let player_num = player_num.clone();
 
     // Task for receiving messages from own client
     // and possibly broadcasting to channel
@@ -113,14 +121,31 @@ async fn ws_game_play_handler(
             if let Ok(msg) = GameMessage::read(text) {
                 match msg {
                     GameMessage::Selection { row, col } => {
-                        println!("Made a selection of {:?}, {:?}", row, col);
-                        // persist this selection against game state
-                        // broadcast to everyone to refresh board
-                        // actually, send new board to everyone
+                        // update game board with incoming selection
+                        let game = GameEntity::find_by_id(game_id)
+                            .one(&db_conn)
+                            .await
+                            .expect("game not found")
+                            .unwrap();
+
+                        let game_board = game.board.clone();
+                        let mut game_board: Vec<Vec<u8>> = serde_json::from_value(game_board)
+                            .expect("could not deserialize game board");
+                        game_board[row as usize][col as usize] = player_num;
+
+                        let mut game: GameActiveModel = game.into();
+                        game.board = Set(json!(game_board));
+                        game.update(&db_conn)
+                            .await
+                            .expect("could not update game board");
+
+                        // notify channel of updated board
+                        channel_tx.send(format!("Board {:?}", game_board));
                     }
                     GameMessage::End { winner } => {
                         println!("The winner is player {:?}", winner);
                     }
+                    _ => {}
                 }
             }
         }

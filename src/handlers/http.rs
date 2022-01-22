@@ -92,6 +92,7 @@ pub async fn play_game(
         .unwrap();
 
     let game_board = game.board.clone();
+    println!("game board: {:?}", game_board);
 
     // assign player number
     // 0 -- observer
