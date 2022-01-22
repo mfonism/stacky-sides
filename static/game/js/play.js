@@ -21,10 +21,10 @@ window.addEventListener("DOMContentLoaded", (event) => {
   };
 
   websocket.onmessage = function (event) {
-    let message = event.data.toLowerCase();
-    if (message.startsWith("board")) {
-      let message = message.slice("board".length).trim();
-      gameUI.replaceGameBoardData(JSON.parse(message));
+    let msg = event.data.toLowerCase();
+    if (msg.startsWith("board")) {
+      msg = msg.slice("board".length).trim();
+      gameUI.replaceGameBoardData(JSON.parse(msg));
     }
   };
 });

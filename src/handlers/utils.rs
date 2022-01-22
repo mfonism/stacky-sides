@@ -10,9 +10,7 @@ impl GameMessage {
         let text = text.to_lowercase();
 
         if text.starts_with("board") {
-            return Ok(Self::Board {
-                state_str: text,
-            });
+            return Ok(Self::Board { state_str: text });
         }
 
         let parts = text.split(" ").collect::<Vec<&str>>();
