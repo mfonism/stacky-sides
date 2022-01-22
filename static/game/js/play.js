@@ -38,14 +38,14 @@ class GameUI {
 
     boardData.forEach((row, i) => {
       row.forEach((cellData, j) => {
-        cardElt.appendChild(this.createGameCell(i, j, cellData));
+        cardElt.appendChild(this.createGameCell(i, j, cellData, boardData));
       });
     });
 
     return cardElt;
   }
 
-  createGameCell(i, j, cellData) {
+  createGameCell(i, j, cellData, boardData) {
     let cellElt = document.createElement("div");
     cellElt.classList.add("cell");
     cellElt.setAttribute("data-row", i);
@@ -55,32 +55,50 @@ class GameUI {
       cellElt.classList.add("black");
     } else if (cellData == 2) {
       cellElt.classList.add("white");
+    } else {
+      // prevent from selecting cells that have no selected
+      // neighbours on either side of them and aren't on the
+      // left or right ends of the board
+      if (
+        0 < j < boardData[0].length - 1 &&
+        boardData[i][j - 1] === 0 &&
+        boardData[i][j + 1] === 0
+      ) {
+        cellElt.classList.add("disabled");
+      }
     }
 
     return cellElt;
   }
 
-  attachClickListeners(websocket) {
+  attachClickListener(websocket) {
     let playerNum = this.playerNum;
 
-    document.querySelectorAll(".cell").forEach((cell) => {
-      cell.addEventListener("click", (event) => {
-        // check whether it is player's move
-        if (!this.canPlayNext) {
-          return;
-        }
-        this.canPlayNext = false;
+    // attach on game card's parent because we'll
+    // replace the game card on each refresh
+    document.querySelector(".game-card").addEventListener("click", (event) => {
+      if (
+        !event.target.classList.contains("cell") ||
+        event.target.classList.contains("disabled")
+      ) {
+        return;
+      }
 
-        if (playerNum == 1) {
-          event.target.classList.add("black");
-        } else if (playerNum == 2) {
-          event.target.classList.add("white");
-        }
+      // check whether it is this player's move
+      if (!this.canPlayNext) {
+        return;
+      }
+      this.canPlayNext = false;
 
-        websocket.send(
-          `Selection ${event.target.dataset.row} ${event.target.dataset.col}`
-        );
-      });
+      if (playerNum == 1) {
+        event.target.classList.add("black");
+      } else if (playerNum == 2) {
+        event.target.classList.add("white");
+      }
+
+      websocket.send(
+        `Selection ${event.target.dataset.row} ${event.target.dataset.col}`
+      );
     });
   }
 }
@@ -100,7 +118,7 @@ window.addEventListener("DOMContentLoaded", (event) => {
   gameUI.refreshGameBoard(gameBoardData);
 
   const websocket = new WebSocket(gamePlaySocketUrl);
-  gameUI.attachClickListeners(websocket);
+  gameUI.attachClickListener(websocket);
 
   websocket.onopen = function (event) {
     console.log(`Connection to ${gamePlaySocketUrl} opened!`);

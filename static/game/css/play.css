@@ -32,8 +32,9 @@ h1 {
   width: 28px;
   margin: 2px;
   border-radius: 50%;
-  background: khaki;
+  background: #8ef08c;
   border: 1px solid black;
+  cursor: pointer;
 }
 
 .cell.black,
@@ -49,4 +50,9 @@ h1 {
 .cell.white {
   background: white;
   background: radial-gradient(circle at 100px 100px, #000307, rgb(253, 242, 242));
+}
+
+.cell.disabled {
+  cursor: auto;
+  background-color: #8c9070ab;
 }
