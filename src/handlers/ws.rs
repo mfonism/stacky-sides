@@ -140,7 +140,7 @@ async fn ws_game_play_handler(
                             .expect("could not update game board");
 
                         // notify channel of updated board
-                        channel_tx.send(format!("Board {:?}", game_board));
+                        let _ = channel_tx.send(format!("Board {:?}", game_board));
                     }
                     GameMessage::End { winner } => {
                         println!("The winner is player {:?}", winner);

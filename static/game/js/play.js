@@ -2,16 +2,16 @@ window.addEventListener("DOMContentLoaded", (event) => {
   const gamePlaySocketUrl = JSON.parse(
     document.getElementById("gameWsUrl").textContent
   );
+  const gameBoardData = JSON.parse(
+    document.getElementById("gameBoardData").textContent
+  );
+  const playerNum = JSON.parse(
+    document.getElementById("playerNum").textContent
+  );
+  let gameUI = new GameUI(playerNum, gameBoardData);
 
   const websocket = new WebSocket(gamePlaySocketUrl);
   websocket.onopen = function (event) {
-    const gameBoardData = JSON.parse(
-      document.getElementById("gameBoardData").textContent
-    );
-    const playerNum = JSON.parse(
-      document.getElementById("playerNum").textContent
-    );
-    let gameUI = new GameUI(playerNum, gameBoardData);
     gameUI.refreshGameBoard();
     gameUI.attachClickListener(websocket);
   };
@@ -21,6 +21,10 @@ window.addEventListener("DOMContentLoaded", (event) => {
   };
 
   websocket.onmessage = function (event) {
-    console.log(`Received message: ${event.data}`);
+    let message = event.data.toLowerCase();
+    if (message.startsWith("board")) {
+      let message = message.slice("board".length).trim();
+      gameUI.replaceGameBoardData(JSON.parse(message));
+    }
   };
 });

@@ -5,10 +5,15 @@ class GameUI {
     this.gameBoardData = gameBoardData;
   }
 
+  replaceGameBoardData(gameBoardData) {
+    this.gameBoardData = gameBoardData;
+    this.refreshGameBoard();
+  }
+
   refreshGameBoard() {
     document.querySelector(".game-card").replaceWith(this.createGameCard());
 
-    this.canPlayNext = (this.checkTurn() == this.playerNum);
+    this.canPlayNext = this.checkTurn() == this.playerNum;
   }
 
   checkTurn() {

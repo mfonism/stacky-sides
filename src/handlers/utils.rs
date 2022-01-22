@@ -11,7 +11,7 @@ impl GameMessage {
 
         if text.starts_with("board") {
             return Ok(Self::Board {
-                state_str: text.strip_prefix("board").unwrap().trim().to_string(),
+                state_str: text,
             });
         }
 
