@@ -37,8 +37,7 @@ h1 {
   cursor: pointer;
 }
 
-.cell.black,
-.cell.white {
+.cell.colored {
   border: none;
 }
 

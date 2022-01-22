@@ -60,9 +60,9 @@ class GameUI {
     cellElt.setAttribute("data-col", j);
 
     if (this.gameBoardData[i][j] == 1) {
-      cellElt.classList.add("black");
+      cellElt.classList.add("colored", "black");
     } else if (this.gameBoardData[i][j] == 2) {
-      cellElt.classList.add("white");
+      cellElt.classList.add("colored", "white");
     } else {
       // prevent from selecting cells that have no selected
       // neighbours on either side of them and aren't on the
@@ -87,7 +87,8 @@ class GameUI {
       console.log('entering')
       if (
         !event.target.classList.contains("cell") ||
-        event.target.classList.contains("disabled")
+        event.target.classList.contains("disabled") ||
+        event.target.classList.contains("colored")
       ) {
         console.log('returing 1');
         return;
