@@ -13,10 +13,7 @@ class GameUI {
   refreshGameBoard() {
     document.querySelector(".game-card").replaceWith(this.createGameCard());
 
-    console.log('PN ', this.playerNum);
-    console.log('CH ', this.checkTurn());
     this.canPlayNext = this.checkTurn() === this.playerNum;
-    console.log('CPN', this.canPlayNext);
   }
 
   checkTurn() {
@@ -83,31 +80,30 @@ class GameUI {
     // attach listener on game card's parent
     // (and not on game card itself) because we'll
     // replace the game card on each refresh
-    document.querySelector(".game-card").parentElement.addEventListener("click", (event) => {
-      console.log('entering')
-      if (
-        !event.target.classList.contains("cell") ||
-        event.target.classList.contains("disabled") ||
-        event.target.classList.contains("colored")
-      ) {
-        console.log('returing 1');
-        return;
-      }
+    document
+      .querySelector(".game-card")
+      .parentElement.addEventListener("click", (event) => {
+        if (
+          !event.target.classList.contains("cell") ||
+          event.target.classList.contains("disabled") ||
+          event.target.classList.contains("colored")
+        ) {
+          return;
+        }
 
-      // check whether it is this player's move
-      if (!this.canPlayNext) {
-        console.log('returning 2')
-        return;
-      }
-      this.canPlayNext = false;
+        // check whether it is this player's move
+        if (!this.canPlayNext) {
+          return;
+        }
+        this.canPlayNext = false;
 
-      let row = event.target.dataset.row;
-      let col = event.target.dataset.col;
-      this.gameBoardData[row][col] = this.playerNum;
+        let row = event.target.dataset.row;
+        let col = event.target.dataset.col;
+        this.gameBoardData[row][col] = this.playerNum;
 
-      this.refreshGameBoard(gameBoardData);
-      console.log(`Selection ${row} ${col}`);
-      websocket.send(`Selection ${row} ${col}`);
-    });
+        this.refreshGameBoard(gameBoardData);
+
+        websocket.send(`Selection ${row} ${col}`);
+      });
   }
 }
