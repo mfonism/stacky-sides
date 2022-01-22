@@ -54,5 +54,6 @@
 {% endblock content %}
 
 {% block extra_js %}
+<script src="/static/game/js/game-ui.js"></script>
 <script src="/static/game/js/play.js"></script>
 {% endblock extra_js %}
