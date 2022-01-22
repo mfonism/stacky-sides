@@ -92,15 +92,6 @@ async fn ws_game_play_handler(
         }
     }
 
-    println!("");
-    println!("");
-    println!("");
-    println!("player num {:?}", player_num);
-    println!("session key {:?}", cookies.session_id);
-    println!("");
-    println!("");
-    println!("");
-
     // subscribe to receive messages in gaming channel
     let channel_tx = gaming_channels
         .query_channel(&game_id)
@@ -127,15 +118,6 @@ async fn ws_game_play_handler(
     let channel_tx = channel_tx.clone();
     let player_num = player_num.clone();
 
-    println!("");
-    println!("");
-    println!("");
-    println!("player num {:?}", player_num);
-    println!("session key {:?}", cookies.session_id);
-    println!("");
-    println!("");
-    println!("");
-
     // Task for receiving messages from own client
     // and possibly broadcasting to channel
     let mut recv_task = tokio::spawn(async move {
@@ -143,13 +125,6 @@ async fn ws_game_play_handler(
             if let Ok(msg) = GameMessage::read(text) {
                 match msg {
                     GameMessage::Selection { row, col } => {
-                        println!("");
-                        println!("");
-                        println!("");
-                        println!("{:?} {:?}", row, col);
-                        println!("");
-                        println!("");
-                        println!("");
                         // update game board with incoming selection
                         let game = GameEntity::find_by_id(game_id)
                             .one(&db_conn)
@@ -161,26 +136,7 @@ async fn ws_game_play_handler(
                         let mut game_board: Vec<Vec<u8>> = serde_json::from_value(game_board)
                             .expect("could not deserialize game board");
 
-                        println!("");
-                        println!("");
-                        println!("");
-                        println!("player num {:?}", player_num);
-                        println!("before {:?}", game_board);
-                        println!("row as usize {:?}", row as usize);
-                        println!("col as usize {:?}", col as usize);
-                        println!("");
-                        println!("");
-                        println!("");
-
                         game_board[row as usize][col as usize] = player_num;
-
-                        println!("");
-                        println!("");
-                        println!("");
-                        println!("after {:?}", game_board);
-                        println!("");
-                        println!("");
-                        println!("");
 
                         let mut game: GameActiveModel = game.into();
                         game.board = Set(json!(game_board));
