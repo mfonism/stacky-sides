@@ -3,6 +3,11 @@ h1 {
   font-variant: small-caps;
 }
 
+.brand {
+  text-decoration: none;
+  color: black;
+}
+
 .player-card .bi {
   font-size: 56px;
   border-radius: 4px;
@@ -39,6 +44,7 @@ h1 {
 
 .cell.colored {
   border: none;
+  cursor: auto;
 }
 
 .cell.black {

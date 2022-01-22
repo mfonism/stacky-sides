@@ -11,7 +11,7 @@
 {% block content %}
 <div class="container pt-5">
     <div class="row justify-content-center">
-        <h1 class="h2 text-center">&lt; {{ site_name }} &sol;&gt;</h1>
+        <h1 class="h2 text-center"><a class="brand" href="/">&lt; {{ site_name }} &sol;&gt;</a></h1>
     </div>    
 </div>
 
