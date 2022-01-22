@@ -125,6 +125,22 @@ async fn ws_game_play_handler(
             if let Ok(msg) = GameMessage::read(text) {
                 match msg {
                     GameMessage::Selection { row, col } => {
+                        // not a player?
+                        if player_num == 0 {
+                            return
+                        }
+
+                        // game already over?
+                        // TO-DO
+
+                        // invalid selection?
+                        // TO-DO
+                        // * selection has already been made
+                        // * selection goes against board rules)
+
+                        // is this a winning move?
+                        // TO-DO
+
                         // update game board with incoming selection
                         let game = GameEntity::find_by_id(game_id)
                             .one(&db_conn)
