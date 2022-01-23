@@ -127,7 +127,7 @@ async fn ws_game_play_handler(
                     GameMessage::Selection { row, col } => {
                         // not a player?
                         if player_num == 0 {
-                            return
+                            return;
                         }
 
                         // game already over?
