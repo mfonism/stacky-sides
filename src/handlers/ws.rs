@@ -110,6 +110,9 @@ async fn ws_game_play_handler(
                             break;
                         }
                     }
+                    GameMessage::End { winner } => {
+                        println!("The winner is player {:?}", winner);
+                    }
                     _ => {}
                 }
             }
@@ -134,19 +137,21 @@ async fn ws_game_play_handler(
                             return;
                         }
 
-                        // game already over?
-                        // TO-DO
-
-                        // invalid selection?
-                        // TO-DO
-                        // * selection has already been made
-                        // * selection goes against board rules)
-
                         let game = GameEntity::find_by_id(game_id)
                             .one(&db_conn)
                             .await
                             .expect("game not found")
                             .unwrap();
+
+                        // game has already ended
+                        if let Some(_) = game.ended_at {
+                            break;
+                        }
+
+                        // invalid selection?
+                        // TO-DO
+                        // * selection has already been made on this board
+                        // * selection goes against board rules)
 
                         // update game board with incoming selection
                         let game_board = game.board.clone();
@@ -159,21 +164,14 @@ async fn ws_game_play_handler(
 
                         // was it a winning move?
                         if is_winning_move(row, col, &game_board) {
-                            println!("");
-                            println!("");
-                            println!("Is winning move!");
-                            println!("");
-                            println!("");
                             game.winner_key = Set(Some(cookies.session_id));
                             game.ended_at =
                                 Set(Some(Utc::now().with_timezone(&FixedOffset::east(0))));
-                        } else {
-                            println!("");
-                            println!("");
-                            println!("Is NOT winning move!");
-                            println!("");
-                            println!("");
+                            let _ = channel_tx.send(format!("End {:?}", player_num));
                         }
+
+                        // are there any more moves left on board?
+                        // TO-DO
 
                         game.update(&db_conn)
                             .await
@@ -181,9 +179,6 @@ async fn ws_game_play_handler(
 
                         // notify channel of updated board
                         let _ = channel_tx.send(format!("Board {:?}", game_board));
-                    }
-                    GameMessage::End { winner } => {
-                        println!("The winner is player {:?}", winner);
                     }
                     _ => {}
                 }
