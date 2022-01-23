@@ -4,6 +4,7 @@ use std::sync::{Arc, Mutex};
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Extension, Path};
 use axum::response::IntoResponse;
+use chrono::{FixedOffset, Utc};
 use futures::sink::SinkExt;
 use futures::stream::StreamExt;
 use sea_orm::prelude::*;
@@ -13,7 +14,7 @@ use serde_json::json;
 use tokio::sync::broadcast;
 use uuid::Uuid;
 
-use super::utils::GameMessage;
+use super::utils::{is_winning_move, GameMessage};
 use crate::cookies::Cookies;
 use crate::entity::game::{
     ActiveModel as GameActiveModel, Entity as GameEntity, Model as GameModel,
@@ -125,6 +126,9 @@ async fn ws_game_play_handler(
             if let Ok(msg) = GameMessage::read(text) {
                 match msg {
                     GameMessage::Selection { row, col } => {
+                        let row = row as usize;
+                        let col = col as usize;
+
                         // not a player?
                         if player_num == 0 {
                             return;
@@ -138,24 +142,39 @@ async fn ws_game_play_handler(
                         // * selection has already been made
                         // * selection goes against board rules)
 
-                        // is this a winning move?
-                        // TO-DO
-
-                        // update game board with incoming selection
                         let game = GameEntity::find_by_id(game_id)
                             .one(&db_conn)
                             .await
                             .expect("game not found")
                             .unwrap();
 
+                        // update game board with incoming selection
                         let game_board = game.board.clone();
                         let mut game_board: Vec<Vec<u8>> = serde_json::from_value(game_board)
                             .expect("could not deserialize game board");
-
-                        game_board[row as usize][col as usize] = player_num;
+                        game_board[row][col] = player_num;
 
                         let mut game: GameActiveModel = game.into();
                         game.board = Set(json!(game_board));
+
+                        // was it a winning move?
+                        if is_winning_move(row, col, &game_board) {
+                            println!("");
+                            println!("");
+                            println!("Is winning move!");
+                            println!("");
+                            println!("");
+                            game.winner_key = Set(Some(cookies.session_id));
+                            game.ended_at =
+                                Set(Some(Utc::now().with_timezone(&FixedOffset::east(0))));
+                        } else {
+                            println!("");
+                            println!("");
+                            println!("Is NOT winning move!");
+                            println!("");
+                            println!("");
+                        }
+
                         game.update(&db_conn)
                             .await
                             .expect("could not update game board");

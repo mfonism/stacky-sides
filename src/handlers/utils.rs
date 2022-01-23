@@ -37,10 +37,38 @@ impl GameMessage {
 }
 
 pub fn is_winning_move(row: usize, col: usize, game_board: &Vec<Vec<u8>>) -> bool {
-    true
+    // line: |
+    let (row_top, _col_top) = seek_top(row, col, game_board);
+    let (row_btm, _col_btm) = seek_bottom(row, col, game_board);
+    if row_btm - row_top >= 3 {
+        return true;
+    }
+
+    // line: -
+    let (_row_left, col_left) = seek_left(row, col, game_board);
+    let (_row_right, col_right) = seek_right(row, col, game_board);
+    if col_right - col_left >= 3 {
+        return true;
+    }
+
+    // line: /
+    let (_row_top_right, col_top_right) = seek_top_right(row, col, game_board);
+    let (_row_btm_left, col_btm_left) = seek_bottom_left(row, col, game_board);
+    if col_top_right - col_btm_left >= 3 {
+        return true;
+    }
+
+    // line: \
+    let (_row_top_left, col_top_left) = seek_top_left(row, col, game_board);
+    let (_row_btm_right, col_btm_right) = seek_bottom_right(row, col, game_board);
+    if col_btm_right - col_top_left >= 3 {
+        return true;
+    }
+
+    return false;
 }
 
-pub fn seek_top(row: usize, col: usize, game_board: &Vec<Vec<u8>>) -> (usize, usize) {
+fn seek_top(row: usize, col: usize, game_board: &Vec<Vec<u8>>) -> (usize, usize) {
     let item = game_board[row][col];
     let mut row = row;
 
@@ -55,7 +83,7 @@ pub fn seek_top(row: usize, col: usize, game_board: &Vec<Vec<u8>>) -> (usize, us
     (row, col)
 }
 
-pub fn seek_bottom(row: usize, col: usize, game_board: &Vec<Vec<u8>>) -> (usize, usize) {
+fn seek_bottom(row: usize, col: usize, game_board: &Vec<Vec<u8>>) -> (usize, usize) {
     let item = game_board[row][col];
     let mut row = row;
 
@@ -70,7 +98,7 @@ pub fn seek_bottom(row: usize, col: usize, game_board: &Vec<Vec<u8>>) -> (usize,
     (row, col)
 }
 
-pub fn seek_right(row: usize, col: usize, game_board: &Vec<Vec<u8>>) -> (usize, usize) {
+fn seek_right(row: usize, col: usize, game_board: &Vec<Vec<u8>>) -> (usize, usize) {
     let item = game_board[row][col];
     let mut col = col;
 
@@ -85,7 +113,7 @@ pub fn seek_right(row: usize, col: usize, game_board: &Vec<Vec<u8>>) -> (usize, 
     (row, col)
 }
 
-pub fn seek_left(row: usize, col: usize, game_board: &Vec<Vec<u8>>) -> (usize, usize) {
+fn seek_left(row: usize, col: usize, game_board: &Vec<Vec<u8>>) -> (usize, usize) {
     let item = game_board[row][col];
     let mut col = col;
 
@@ -100,7 +128,7 @@ pub fn seek_left(row: usize, col: usize, game_board: &Vec<Vec<u8>>) -> (usize, u
     (row, col)
 }
 
-pub fn seek_top_right(row: usize, col: usize, game_board: &Vec<Vec<u8>>) -> (usize, usize) {
+fn seek_top_right(row: usize, col: usize, game_board: &Vec<Vec<u8>>) -> (usize, usize) {
     let item = game_board[row][col];
     let (mut row, mut col) = (row, col);
 
@@ -116,7 +144,7 @@ pub fn seek_top_right(row: usize, col: usize, game_board: &Vec<Vec<u8>>) -> (usi
     (row, col)
 }
 
-pub fn seek_top_left(row: usize, col: usize, game_board: &Vec<Vec<u8>>) -> (usize, usize) {
+fn seek_top_left(row: usize, col: usize, game_board: &Vec<Vec<u8>>) -> (usize, usize) {
     let item = game_board[row][col];
     let (mut row, mut col) = (row, col);
 
@@ -132,7 +160,7 @@ pub fn seek_top_left(row: usize, col: usize, game_board: &Vec<Vec<u8>>) -> (usiz
     (row, col)
 }
 
-pub fn seek_bottom_right(row: usize, col: usize, game_board: &Vec<Vec<u8>>) -> (usize, usize) {
+fn seek_bottom_right(row: usize, col: usize, game_board: &Vec<Vec<u8>>) -> (usize, usize) {
     let item = game_board[row][col];
     let (mut row, mut col) = (row, col);
 
@@ -148,7 +176,7 @@ pub fn seek_bottom_right(row: usize, col: usize, game_board: &Vec<Vec<u8>>) -> (
     (row, col)
 }
 
-pub fn seek_bottom_left(row: usize, col: usize, game_board: &Vec<Vec<u8>>) -> (usize, usize) {
+fn seek_bottom_left(row: usize, col: usize, game_board: &Vec<Vec<u8>>) -> (usize, usize) {
     let item = game_board[row][col];
     let (mut row, mut col) = (row, col);
 

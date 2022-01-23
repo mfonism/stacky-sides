@@ -10,6 +10,8 @@ pub struct Model {
     pub player1_key: Option<Uuid>,
     pub player2_key: Option<Uuid>,
     pub board: Json,
+    pub winner_key: Option<Uuid>,
+    pub ended_at: Option<DateTimeWithTimeZone>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
