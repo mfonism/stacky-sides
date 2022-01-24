@@ -10,7 +10,7 @@ document.querySelector(".share").addEventListener("click", () => {
     clipBoardIcon.classList.remove("d-none");
     checkIcon.classList.add("d-none");
     if (alertHolder.firstChild) {
-      alertHolder.removeChild(alertHolder.firstChild);
+      alertHolder.firstChild.remove();
     }
   }, 3000);
 
@@ -28,7 +28,7 @@ document.querySelector(".share").addEventListener("click", () => {
         alertComponent.innerText = "Link copied to clipboard!";
 
         while (alertHolder.firstChild) {
-          alertHolder.removeChild(alertHolder.firstChild);
+          alertHolder.firstChild.remove();
         }
         alertHolder.appendChild(alertComponent);
       });
