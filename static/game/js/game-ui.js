@@ -1,8 +1,9 @@
 class GameUI {
-  constructor(playerNum, gameBoardData) {
+  constructor(playerNum, gameBoardData, isGameOver) {
     this.canPlayNext = false;
     this.playerNum = playerNum;
     this.gameBoardData = gameBoardData;
+    this.isGameOver = isGameOver;
   }
 
   replaceGameBoardData(gameBoardData) {
@@ -13,7 +14,12 @@ class GameUI {
   refreshGameBoard() {
     document.querySelector(".game-card").replaceWith(this.createGameCard());
 
-    this.canPlayNext = this.checkTurn() === this.playerNum;
+    if (this.isGameOver) {
+      this.canPlayNext = false;
+      this.displayResult();
+    } else {
+      this.canPlayNext = this.checkTurn() === this.playerNum;
+    }
   }
 
   checkTurn() {
@@ -105,5 +111,24 @@ class GameUI {
 
         websocket.send(`Selection ${row} ${col}`);
       });
+  }
+
+  notifyGameEnd(winnerNum) {
+    this.winnerNum = winnerNum;
+    this.loserNum = this.winnerNum === 1 ? 2 : 1;
+    this.isGameOver = true;
+  }
+
+  displayResult() {
+    let resultElt = document.createElement("p");
+    resultElt.classList.add("h6", "pt-2");
+    resultElt.textContent = `Player ${this.winnerNum} won, Player ${this.loserNum} lost.`;
+
+    let resultCardElt = document.querySelector(".result-card");
+    while (resultCardElt.firstChild) {
+      resultCardElt.firstChild.remove();
+    }
+
+    resultCardElt.appendChild(resultElt);
   }
 }

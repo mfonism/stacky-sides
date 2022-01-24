@@ -44,13 +44,15 @@
                     {% endfor %}
                 {% endfor %}
             </div>
+            <div class="result-card text-center"></div>
         </div>
-
     </div>
 </div>
+
 <script id="gameWsUrl" type="application/json">{{ game_ws_url }}</script>
 <script id="gameBoardData" type="application/json">{{ game_board }}</script>
 <script id="playerNum" type="application/json">{{ player_num }}</script>
+<script id="isGameOver" type="application/json">{{ is_game_over }}</script>
 {% endblock content %}
 
 {% block extra_js %}

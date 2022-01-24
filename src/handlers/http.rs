@@ -92,6 +92,10 @@ pub async fn play_game(
         .unwrap();
 
     let game_board = game.board.clone();
+    let is_game_over = match &game.ended_at {
+        None => false,
+        _ => true,
+    };
 
     // assign player number
     // 0 -- observer
@@ -142,6 +146,7 @@ pub async fn play_game(
     context.insert("site_name", "Stacky Sides");
     context.insert("player_num", &player_num);
     context.insert("game_board", &game_board);
+    context.insert("is_game_over", &is_game_over);
     context.insert("dim", &(0..7).collect::<Vec<usize>>());
     context.insert("game_ws_url", &game_ws_url);
     let body = templates

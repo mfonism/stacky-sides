@@ -8,7 +8,10 @@ window.addEventListener("DOMContentLoaded", (event) => {
   const playerNum = JSON.parse(
     document.getElementById("playerNum").textContent
   );
-  let gameUI = new GameUI(playerNum, gameBoardData);
+  const isGameOver = JSON.parse(
+    document.getElementById("isGameOver").textContent
+  );
+  let gameUI = new GameUI(playerNum, gameBoardData, isGameOver);
 
   const websocket = new WebSocket(gamePlaySocketUrl);
   websocket.onopen = function (event) {
@@ -22,9 +25,13 @@ window.addEventListener("DOMContentLoaded", (event) => {
 
   websocket.onmessage = function (event) {
     let msg = event.data.toLowerCase();
+
     if (msg.startsWith("board")) {
       msg = msg.slice("board".length).trim();
       gameUI.replaceGameBoardData(JSON.parse(msg));
+    } else if (msg.startsWith("end")) {
+      msg = msg.slice("end".length).trim();
+      gameUI.notifyGameEnd(JSON.parse(msg));
     }
   };
 });

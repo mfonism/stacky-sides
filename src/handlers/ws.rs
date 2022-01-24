@@ -110,8 +110,10 @@ async fn ws_game_play_handler(
                             break;
                         }
                     }
-                    GameMessage::End { winner } => {
-                        println!("The winner is player {:?}", winner);
+                    GameMessage::End { ending_str } => {
+                        if own_tx.send(Message::Text(ending_str)).await.is_err() {
+                            break;
+                        }
                     }
                     _ => {}
                 }

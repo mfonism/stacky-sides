@@ -1,8 +1,14 @@
 #[derive(Debug)]
 pub enum GameMessage {
+    // -- OUTGOING MESSAGES
+    // state_str is in the form -- state [[...], [...], ..., [...]]
     Board { state_str: String },
+    // ending_str is in the form -- end x
+    // where x is either 1 or 2, representing which player won
+    // x is 0 in the case of a draw
+    End { ending_str: String },
+    // -- INCOMING MESSAGES
     Selection { row: u8, col: u8 },
-    End { winner: u8 }, // 1 or 2 (or 0, in the case of a draw)
 }
 
 impl GameMessage {
@@ -13,6 +19,11 @@ impl GameMessage {
             return Ok(Self::Board { state_str: text });
         }
 
+        if text.starts_with("end") {
+            return Ok(Self::End { ending_str: text });
+        }
+
+        // validate and process incoming messages
         let parts = text.split(" ").collect::<Vec<&str>>();
         if parts.len() == 0 {
             return Err("empty message!");
@@ -23,13 +34,6 @@ impl GameMessage {
                 return Ok(GameMessage::Selection { row, col });
             }
             return Err("could not parse selection message");
-        }
-
-        if parts[0] == "end" && parts.len() == 2 {
-            if let Ok(winner) = parts[1].parse() {
-                return Ok(GameMessage::End { winner });
-            }
-            return Err("could not parse game end message");
         }
 
         Err("could not parse message")
