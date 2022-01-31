@@ -16,6 +16,10 @@ pub fn handle_template_error(error: TemplateError) -> (StatusCode, String) {
     )
 }
 
+pub fn handle_not_found_error(error: String) -> (StatusCode, String) {
+    (StatusCode::NOT_FOUND, error)
+}
+
 pub async fn handle_staticfiles_server_error(error: std::io::Error) -> (StatusCode, String) {
     (
         StatusCode::INTERNAL_SERVER_ERROR,

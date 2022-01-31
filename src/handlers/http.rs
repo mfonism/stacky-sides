@@ -3,27 +3,26 @@ use std::sync::Arc;
 use axum::extract::{Extension, Path};
 use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse, Redirect};
-use chrono::{FixedOffset, Utc};
 use sea_orm::prelude::*;
 use sea_orm::{DatabaseConnection, DbErr, Set};
-use serde_json::json;
 use tera::{Context, Tera};
 use url::Url;
 use uuid::Uuid;
 
-use super::error::{handle_db_error, handle_template_error};
-use super::ws::GamingChannels;
+use super::error::{handle_db_error, handle_not_found_error, handle_template_error};
+use crate::channels::GameChannels;
 use crate::cookies::Cookies;
-use crate::entity::game::{
-    ActiveModel as GameActiveModel, Entity as GameEntity, Model as GameModel,
-};
+use crate::entity;
+
+const SITE_NAME: &str = "Stacky Sides";
 
 pub async fn index(
     Extension(ref templates): Extension<Tera>,
     _cookies: Cookies,
 ) -> Result<Html<String>, (StatusCode, String)> {
     let mut context = Context::new();
-    context.insert("site_name", "Stacky Sides");
+    context.insert("site_name", SITE_NAME);
+
     let body = templates
         .render("game/index.html.tera", &context)
         .map_err(handle_template_error)?;
@@ -33,44 +32,41 @@ pub async fn index(
 
 pub async fn create_game(
     Extension(ref conn): Extension<DatabaseConnection>,
-    Extension(gaming_channels): Extension<Arc<GamingChannels>>,
+    Extension(game_channels): Extension<Arc<GameChannels>>,
     cookies: Cookies,
 ) -> impl IntoResponse {
-    let game: GameActiveModel = GameActiveModel {
-        uuid: Set(Uuid::new_v4()),
-        created_at: Set(Utc::now().with_timezone(&FixedOffset::east(0))),
-        player1_key: Set(Some(cookies.session_id)), // creator is player1
-        board: Set(json!(init_game_board())),
-        ..Default::default()
-    };
+    let game = entity::game::create(cookies.session_id, conn).await;
 
-    let game = game.insert(conn).await.expect("cannot create game");
+    if let Err(_) = &game {
+        return Redirect::temporary("/".parse().unwrap());
+    }
+
+    let game = game.unwrap();
     let path = format!("/game/{}/share", game.uuid);
-
-    gaming_channels.insert_channel(game.uuid);
+    game_channels.insert_channel(game.uuid);
 
     Redirect::to(path.parse().unwrap())
 }
 
 pub async fn share_game(
     Path(game_id): Path<Uuid>,
+    Extension(ref base_url): Extension<Url>,
     Extension(ref conn): Extension<DatabaseConnection>,
     Extension(ref templates): Extension<Tera>,
-    Extension(ref base_url): Extension<Url>,
     _cookies: Cookies,
 ) -> Result<Html<String>, (StatusCode, String)> {
-    let _game: GameModel = GameEntity::find_by_id(game_id)
-        .one(conn)
+    let game = entity::game::find_by_id(game_id, conn)
         .await
-        .expect("game not found")
-        .unwrap();
+        .map_err(handle_db_error)?
+        .ok_or(format!("Game not found: {}", game_id))
+        .map_err(handle_not_found_error)?;
 
-    let path = format!("game/{}/play", game_id);
-    let game_url = base_url.join(&path).expect("cannot create game play url");
+    let path = format!("game/{}/play", game.uuid);
+    let game_url = base_url.join(&path).unwrap();
 
     let mut context = Context::new();
     context.insert("game_url", &game_url);
-    context.insert("site_name", "Stacky Sides");
+    context.insert("site_name", SITE_NAME);
     let body = templates
         .render("game/share.html.tera", &context)
         .map_err(handle_template_error)?;
@@ -81,73 +77,40 @@ pub async fn share_game(
 pub async fn play_game(
     Path(game_id): Path<Uuid>,
     Extension(ref conn): Extension<DatabaseConnection>,
-    Extension(ref templates): Extension<Tera>,
     Extension(ref base_url): Extension<Url>,
+    Extension(ref templates): Extension<Tera>,
     cookies: Cookies,
 ) -> Result<Html<String>, (StatusCode, String)> {
-    let game: GameModel = GameEntity::find_by_id(game_id)
-        .one(conn)
+    let game = entity::game::find_by_id(game_id, conn)
         .await
-        .expect("game not found")
-        .unwrap();
+        .map_err(handle_db_error)?
+        .ok_or(format!("Game not found: {}", game_id))
+        .map_err(handle_not_found_error)?;
 
     let game_board = game.board.clone();
-    let is_game_over = match &game.ended_at {
+    let is_game_over = match game.ended_at {
         None => false,
         _ => true,
     };
 
     // assign player number
+    // 1 -- player 1, black
+    // 2 -- player 2, white
     // 0 -- observer
-    // 1 -- black
-    // 2 -- white
-    let mut player_num = 0;
-    let session_id = cookies.session_id;
-    match (game.player1_key, game.player2_key) {
-        (None, None) => {
-            player_num = 1;
-            assign_player(game, conn, session_id, player_num)
-                .await
-                .map_err(handle_db_error)?;
-        }
-        (None, Some(key2)) => {
-            if key2 == session_id {
-                player_num = 2;
-            } else {
-                player_num = 1;
-                assign_player(game, conn, session_id, player_num)
-                    .await
-                    .map_err(handle_db_error)?;
-            }
-        }
-        (Some(key1), None) => {
-            if key1 == session_id {
-                player_num = 1;
-            } else {
-                player_num = 2;
-                assign_player(game, conn, session_id, player_num)
-                    .await
-                    .map_err(handle_db_error)?;
-            }
-        }
-        (Some(key1), Some(key2)) => {
-            if key1 == session_id {
-                player_num = 1;
-            } else if key2 == session_id {
-                player_num = 2;
-            }
-        }
-    };
+    let player_num = get_assigned_player_number(game, cookies.session_id, conn)
+        .await
+        .map_err(handle_db_error)?;
 
     let path = format!("/ws/game/{}/play", game_id);
     let game_ws_url = get_ws_url_for_path(path, base_url.clone());
 
     let mut context = Context::new();
-    context.insert("site_name", "Stacky Sides");
+    context.insert("site_name", SITE_NAME);
     context.insert("player_num", &player_num);
     context.insert("game_board", &game_board);
     context.insert("is_game_over", &is_game_over);
-    context.insert("dim", &(0..7).collect::<Vec<usize>>());
+    context.insert("game_board_width", &7);
+    context.insert("game_board_height", &7);
     context.insert("game_ws_url", &game_ws_url);
     let body = templates
         .render("game/play.html.tera", &context)
@@ -156,26 +119,51 @@ pub async fn play_game(
     Ok(Html(body))
 }
 
+async fn get_assigned_player_number(
+    game: entity::game::Model,
+    session_id: Uuid,
+    conn: &DatabaseConnection,
+) -> Result<usize, DbErr> {
+    // find next unassigned `player key` in game
+    // set it to session_id
+    // and return whether this makes owner of session_id player 1 or 2
+    // (or 0, which is what all non-playing observers are)
+    let res = match (game.player1_key, game.player2_key) {
+        (None, None) => assign_player(game, conn, session_id, 1).await?,
+        (None, Some(key2)) => match key2 == session_id {
+            true => 2,
+            _ => assign_player(game, conn, session_id, 1).await?,
+        },
+        (Some(key1), None) => match key1 == session_id {
+            true => 1,
+            _ => assign_player(game, conn, session_id, 2).await?,
+        },
+        (Some(key1), Some(key2)) => match key1 == session_id {
+            true => 1,
+            _ => match key2 == session_id {
+                true => 2,
+                _ => 0,
+            },
+        },
+    };
+
+    Ok(res)
+}
+
 async fn assign_player(
-    game: GameModel,
+    game: entity::game::Model,
     conn: &DatabaseConnection,
     session_id: Uuid,
     player_num: usize,
-) -> Result<GameModel, DbErr> {
-    let mut game: GameActiveModel = game.into();
+) -> Result<usize, DbErr> {
+    let mut game: entity::game::ActiveModel = game.into();
     match player_num {
-        1 => {
-            game.player1_key = Set(Some(session_id));
-        }
-        2 => {
-            game.player2_key = Set(Some(session_id));
-        }
-        _ => {
-            panic!("cannot assign player with key greater than 2 or less than 1");
-        }
+        1 => game.player1_key = Set(Some(session_id)),
+        2 => game.player2_key = Set(Some(session_id)),
+        _ => panic!("cannot assign player with key greater than 2 or less than 1"),
     }
-    let game: GameModel = game.update(conn).await?;
-    Ok(game)
+    game.update(conn).await?;
+    Ok(player_num)
 }
 
 fn get_ws_url_for_path(path: String, mut base_url: Url) -> String {
@@ -186,14 +174,4 @@ fn get_ws_url_for_path(path: String, mut base_url: Url) -> String {
         .join(&path)
         .expect("cannot create game play ws url");
     serde_json::to_string(&game_ws_url).expect("cannot serialize game play ws url")
-}
-
-fn init_game_board() -> Vec<Vec<u8>> {
-    let mut res = vec![];
-
-    for _ in 0..7 {
-        res.push(vec![0, 0, 0, 0, 0, 0, 0]);
-    }
-
-    res
 }

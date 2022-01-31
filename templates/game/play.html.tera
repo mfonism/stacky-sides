@@ -38,8 +38,8 @@
         <!-- game board column -->
         <div class="col-sm-7 order-sm-2 col-md-5 col-lg-4 mt-3">
             <div class="game-card mx-auto d-flex justify-content-center align-content-center flex-wrap">
-                {% for i in dim %}
-                    {% for j in dim %}
+                {% for i in range(end=game_board_height) %}
+                    {% for j in range(end=game_board_width) %}
                         <div data-row="{{ i }}" data-col="{{ j }}" class="cell disabled"></div>
                     {% endfor %}
                 {% endfor %}

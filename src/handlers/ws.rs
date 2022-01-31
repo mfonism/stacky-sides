@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
@@ -11,80 +10,51 @@ use sea_orm::prelude::*;
 use sea_orm::{DatabaseConnection, Set};
 use serde_json;
 use serde_json::json;
-use tokio::sync::broadcast;
 use uuid::Uuid;
 
-use super::utils::{is_winning_move, GameMessage};
+use super::message::GameMessage;
+use super::utils::is_winning_move;
+use crate::channels::GameChannels;
 use crate::cookies::Cookies;
-use crate::entity::game::{
-    ActiveModel as GameActiveModel, Entity as GameEntity, Model as GameModel,
-};
-
-type GameID = Uuid;
-
-pub struct GamingChannels {
-    channels: Mutex<HashMap<GameID, broadcast::Sender<String>>>,
-}
-
-impl GamingChannels {
-    fn new() -> Self {
-        Self {
-            channels: Mutex::new(HashMap::new()),
-        }
-    }
-
-    pub fn new_in_arc() -> Arc<Self> {
-        Arc::new(Self::new())
-    }
-
-    pub fn insert_channel(&self, game_id: GameID) -> Option<broadcast::Sender<String>> {
-        let (channel_tx, _channel_rx) = broadcast::channel(100);
-        self.channels.lock().unwrap().insert(game_id, channel_tx)
-    }
-
-    pub fn query_channel(&self, game_id: &GameID) -> Option<broadcast::Sender<String>> {
-        if let Some(channel_tx) = self.channels.lock().unwrap().get(game_id) {
-            Some(channel_tx.clone())
-        } else {
-            None
-        }
-    }
-}
+use crate::entity;
 
 pub async fn ws_play_game(
     ws: WebSocketUpgrade,
     cookies: Cookies,
     Path(game_id): Path<Uuid>,
     Extension(conn): Extension<DatabaseConnection>,
-    Extension(gaming_channels): Extension<Arc<GamingChannels>>,
+    Extension(game_channels): Extension<Arc<GameChannels>>,
 ) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| {
-        ws_game_play_handler(game_id, gaming_channels, socket, conn, cookies)
-    })
+    ws.on_upgrade(move |socket| ws_game_play_handler(socket, conn, game_id, game_channels, cookies))
 }
 
 async fn ws_game_play_handler(
-    game_id: Uuid,
-    gaming_channels: Arc<GamingChannels>,
     stream: WebSocket,
-    db_conn: DatabaseConnection,
+    conn: DatabaseConnection,
+    game_id: Uuid,
+    game_channels: Arc<GameChannels>,
     cookies: Cookies,
 ) {
     let (mut own_tx, mut own_rx) = stream.split();
 
-    let game: GameModel = GameEntity::find_by_id(game_id)
-        .one(&db_conn)
+    let game = entity::game::find_by_id(game_id, &conn)
         .await
-        .expect("game not found")
-        .unwrap();
+        .expect("database error in finding game")
+        .expect(&format!("could not find game: {}", game_id));
 
+    // get player number
+    // 1 -- player 1, black
+    // 2 -- player 2, white
+    // 0 -- observer
     let mut player_num = 0;
+    // check whether they are player 1
     if let Some(key1) = game.player1_key {
         if key1 == cookies.session_id {
             player_num = 1;
         }
     }
-
+    // if they're still an observer
+    // check whether they are player 2
     if player_num == 0 {
         if let Some(key2) = game.player2_key {
             if key2 == cookies.session_id {
@@ -94,8 +64,8 @@ async fn ws_game_play_handler(
     }
 
     // subscribe to receive messages in gaming channel
-    let channel_tx = gaming_channels
-        .query_channel(&game_id)
+    let channel_tx = game_channels
+        .query_channel(&game.uuid)
         .expect("channel not found for game");
     let mut channel_rx = channel_tx.subscribe();
 
@@ -139,10 +109,10 @@ async fn ws_game_play_handler(
                             return;
                         }
 
-                        let game = GameEntity::find_by_id(game_id)
-                            .one(&db_conn)
+                        // refresh game from db
+                        let game = entity::game::find_by_id(game.uuid, &conn)
                             .await
-                            .expect("game not found")
+                            .unwrap()
                             .unwrap();
 
                         // game has already ended
@@ -158,10 +128,13 @@ async fn ws_game_play_handler(
                         // update game board with incoming selection
                         let game_board = game.board.clone();
                         let mut game_board: Vec<Vec<u8>> = serde_json::from_value(game_board)
-                            .expect("could not deserialize game board");
+                            .expect(&format!(
+                                "could not deserialize game board:\n{:?}",
+                                game.board
+                            ));
                         game_board[row][col] = player_num;
 
-                        let mut game: GameActiveModel = game.into();
+                        let mut game: entity::game::ActiveModel = game.into();
                         game.board = Set(json!(game_board));
 
                         // was it a winning move?
@@ -175,9 +148,7 @@ async fn ws_game_play_handler(
                         // are there any more moves left on board?
                         // TO-DO
 
-                        game.update(&db_conn)
-                            .await
-                            .expect("could not update game board");
+                        game.update(&conn).await.unwrap();
 
                         // notify channel of updated board
                         let _ = channel_tx.send(format!("Board {:?}", game_board));

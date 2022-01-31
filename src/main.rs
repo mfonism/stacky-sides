@@ -10,14 +10,16 @@ use tower_cookies::CookieManagerLayer;
 use tower_http::services::ServeDir;
 use url::Url;
 
+mod channels;
 mod cookies;
 mod entity;
 mod handlers;
 
+use channels::GameChannels;
 use entity::setup as entity_setup;
 use handlers::error::handle_staticfiles_server_error;
 use handlers::http::{create_game, index, play_game, share_game};
-use handlers::ws::{ws_play_game, GamingChannels};
+use handlers::ws::ws_play_game;
 
 #[tokio::main]
 async fn main() {
@@ -59,7 +61,7 @@ async fn main() {
         .nest("/static", staticfiles_service)
         .layer(AddExtensionLayer::new(base_url))
         .layer(AddExtensionLayer::new(conn))
-        .layer(AddExtensionLayer::new(GamingChannels::new_in_arc()))
+        .layer(AddExtensionLayer::new(GameChannels::new_in_arc()))
         .layer(AddExtensionLayer::new(templates))
         .layer(CookieManagerLayer::new());
 
