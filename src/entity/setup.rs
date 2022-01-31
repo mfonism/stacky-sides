@@ -1,4 +1,5 @@
 use sea_orm::error::DbErr;
+use sea_orm::sea_query::value::Value;
 use sea_orm::sea_query::{ColumnDef, TableCreateStatement};
 use sea_orm::{sea_query, ConnectionTrait, DbConn, ExecResult};
 
@@ -23,6 +24,11 @@ pub async fn create_game_table(conn: &DbConn) -> Result<ExecResult, DbErr> {
             ColumnDef::new(game::Column::CreatedAt)
                 .timestamp_with_time_zone()
                 .not_null(),
+        )
+        .col(
+            ColumnDef::new(game::Column::IsAgainstAi)
+                .boolean()
+                .default(Value::Bool(Some(false))),
         )
         .col(ColumnDef::new(game::Column::Player1Key).uuid())
         .col(ColumnDef::new(game::Column::Player2Key).uuid())

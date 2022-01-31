@@ -11,6 +11,7 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub uuid: Uuid,
     pub created_at: DateTimeWithTimeZone,
+    pub is_against_ai: bool,
     pub player1_key: Option<Uuid>,
     pub player2_key: Option<Uuid>,
     pub board: Json,
@@ -23,10 +24,15 @@ pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {}
 
-pub async fn create(creator_key: Uuid, conn: &DatabaseConnection) -> Result<Model, DbErr> {
+pub async fn create(
+    creator_key: Uuid,
+    conn: &DatabaseConnection,
+    is_against_ai: bool,
+) -> Result<Model, DbErr> {
     let game = ActiveModel {
         uuid: Set(Uuid::new_v4()),
         created_at: Set(Utc::now().with_timezone(&FixedOffset::east(0))),
+        is_against_ai: Set(is_against_ai),
         player1_key: Set(Some(creator_key)),
         board: Set(json!(init_game_board())),
         ..Default::default()

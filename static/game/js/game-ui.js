@@ -4,6 +4,19 @@ class GameUI {
     this.playerNum = playerNum;
     this.gameBoardData = gameBoardData;
     this.isGameOver = isGameOver;
+    this.showPlayerStatus();
+  }
+
+  showPlayerStatus() {
+    if (this.playerNum === 0) {
+      return;
+    }
+
+    let className =
+      this.playerNum === 1 ? "black" : this.playerNum === 2 ? "white" : "oops";
+    document
+      .querySelector(`.${className} .description`)
+      .appendChild(document.createTextNode("(You)"));
   }
 
   replaceGameBoardData(gameBoardData) {

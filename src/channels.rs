@@ -33,4 +33,14 @@ impl GameChannels {
             None
         }
     }
+
+    pub fn ensure_channel(&self, game_id: GameID) -> broadcast::Sender<String> {
+        match self.query_channel(&game_id) {
+            Some(channel) => channel,
+            _ => {
+                self.insert_channel(game_id);
+                self.query_channel(&game_id).unwrap()
+            }
+        }
+    }
 }

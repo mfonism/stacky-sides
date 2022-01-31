@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 const COOKIE_NAME: &str = "stacky_sides_cookie";
 
+#[derive(Clone, Copy)]
 pub struct Cookies {
     pub session_id: Uuid,
 }

@@ -35,7 +35,7 @@ pub async fn create_game(
     Extension(game_channels): Extension<Arc<GameChannels>>,
     cookies: Cookies,
 ) -> impl IntoResponse {
-    let game = entity::game::create(cookies.session_id, conn).await;
+    let game = entity::game::create(cookies.session_id, conn, true).await;
 
     if let Err(_) = &game {
         return Redirect::temporary("/".parse().unwrap());
@@ -87,6 +87,7 @@ pub async fn play_game(
         .ok_or(format!("Game not found: {}", game_id))
         .map_err(handle_not_found_error)?;
 
+    let is_against_ai = game.is_against_ai;
     let game_board = game.board.clone();
     let is_game_over = match game.ended_at {
         None => false,
@@ -106,6 +107,7 @@ pub async fn play_game(
 
     let mut context = Context::new();
     context.insert("site_name", SITE_NAME);
+    context.insert("is_against_ai", &is_against_ai);
     context.insert("player_num", &player_num);
     context.insert("game_board", &game_board);
     context.insert("is_game_over", &is_game_over);
@@ -132,11 +134,17 @@ async fn get_assigned_player_number(
         (None, None) => assign_player(game, conn, session_id, 1).await?,
         (None, Some(key2)) => match key2 == session_id {
             true => 2,
-            _ => assign_player(game, conn, session_id, 1).await?,
+            _ => match game.is_against_ai {
+                true => 0,
+                _ => assign_player(game, conn, session_id, 1).await?,
+            },
         },
         (Some(key1), None) => match key1 == session_id {
             true => 1,
-            _ => assign_player(game, conn, session_id, 2).await?,
+            _ => match game.is_against_ai {
+                true => 0,
+                _ => assign_player(game, conn, session_id, 2).await?,
+            },
         },
         (Some(key1), Some(key2)) => match key1 == session_id {
             true => 1,

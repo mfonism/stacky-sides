@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Extension, Path};
@@ -10,6 +10,7 @@ use sea_orm::prelude::*;
 use sea_orm::{DatabaseConnection, Set};
 use serde_json;
 use serde_json::json;
+use tokio::sync::broadcast;
 use uuid::Uuid;
 
 use super::message::GameMessage;
@@ -64,9 +65,7 @@ async fn ws_game_play_handler(
     }
 
     // subscribe to receive messages in gaming channel
-    let channel_tx = game_channels
-        .query_channel(&game.uuid)
-        .expect("channel not found for game");
+    let channel_tx = game_channels.ensure_channel(game.uuid);
     let mut channel_rx = channel_tx.subscribe();
 
     // Task for receiving broadcast messages from the channel
@@ -109,49 +108,28 @@ async fn ws_game_play_handler(
                             return;
                         }
 
-                        // refresh game from db
-                        let game = entity::game::find_by_id(game.uuid, &conn)
-                            .await
-                            .unwrap()
-                            .unwrap();
-
-                        // game has already ended
-                        if let Some(_) = game.ended_at {
+                        if let Err(_) = play_as_human(
+                            game_id,
+                            &conn,
+                            row,
+                            col,
+                            player_num,
+                            channel_tx.clone(),
+                            cookies,
+                        )
+                        .await
+                        {
                             break;
                         }
 
-                        // invalid selection?
-                        // TO-DO
-                        // * selection has already been made on this board
-                        // * selection goes against board rules)
-
-                        // update game board with incoming selection
-                        let game_board = game.board.clone();
-                        let mut game_board: Vec<Vec<u8>> = serde_json::from_value(game_board)
-                            .expect(&format!(
-                                "could not deserialize game board:\n{:?}",
-                                game.board
-                            ));
-                        game_board[row][col] = player_num;
-
-                        let mut game: entity::game::ActiveModel = game.into();
-                        game.board = Set(json!(game_board));
-
-                        // was it a winning move?
-                        if is_winning_move(row, col, &game_board) {
-                            game.winner_key = Set(Some(cookies.session_id));
-                            game.ended_at =
-                                Set(Some(Utc::now().with_timezone(&FixedOffset::east(0))));
-                            let _ = channel_tx.send(format!("End {:?}", player_num));
+                        if game.is_against_ai {
+                            if let Err(_) =
+                                play_as_ai(game_id, &conn, player_num, channel_tx.clone(), cookies)
+                                    .await
+                            {
+                                break;
+                            }
                         }
-
-                        // are there any more moves left on board?
-                        // TO-DO
-
-                        game.update(&conn).await.unwrap();
-
-                        // notify channel of updated board
-                        let _ = channel_tx.send(format!("Board {:?}", game_board));
                     }
                     _ => {}
                 }
@@ -164,4 +142,126 @@ async fn ws_game_play_handler(
         _ = (&mut send_task) => recv_task.abort(),
         _ = (&mut recv_task) => send_task.abort(),
     };
+}
+
+async fn play_as_human(
+    game_id: Uuid,
+    conn: &DatabaseConnection,
+    row: usize,
+    col: usize,
+    player_num: u8,
+    channel_tx: broadcast::Sender<String>,
+    cookies: Cookies,
+) -> Result<(), &str> {
+    // refresh game from db
+    let game = entity::game::find_by_id(game_id, &conn)
+        .await
+        .unwrap()
+        .unwrap();
+
+    play(
+        game,
+        &conn,
+        row,
+        col,
+        player_num,
+        channel_tx.clone(),
+        cookies,
+    )
+    .await
+}
+
+async fn play_as_ai(
+    game_id: Uuid,
+    conn: &DatabaseConnection,
+    player_num: u8,
+    channel_tx: broadcast::Sender<String>,
+    cookies: Cookies,
+) -> Result<(), &str> {
+    // refresh game from db
+    let game = entity::game::find_by_id(game_id, &conn)
+        .await
+        .unwrap()
+        .unwrap();
+
+    let player_num = match player_num {
+        1 => 2,
+        2 => 1,
+        _ => panic!("This shouldn't be happening!"),
+    };
+
+    let board: Vec<Vec<u8>> = serde_json::from_value(game.board.clone()).expect(&format!(
+        "could not deserialize game board:\n{:?}",
+        game.board
+    ));
+    let (row, col) = get_ai_play(board);
+
+    play(
+        game,
+        &conn,
+        row,
+        col,
+        player_num,
+        channel_tx.clone(),
+        cookies,
+    )
+    .await
+}
+
+async fn play(
+    game: entity::game::Model,
+    conn: &DatabaseConnection,
+    row: usize,
+    col: usize,
+    player_num: u8,
+    channel_tx: broadcast::Sender<String>,
+    cookies: Cookies,
+) -> Result<(), &str> {
+    // game has already ended
+    if let Some(_) = game.ended_at {
+        return Err("game already ended");
+    }
+
+    // invalid selection?
+    // TO-DO
+    // * selection has already been made on this board
+    // * selection goes against board rules)
+
+    // update game board with incoming selection
+    let game_board = game.board.clone();
+    let mut game_board: Vec<Vec<u8>> = serde_json::from_value(game_board).expect(&format!(
+        "could not deserialize game board:\n{:?}",
+        game.board
+    ));
+    game_board[row][col] = player_num;
+
+    let mut game: entity::game::ActiveModel = game.into();
+    game.board = Set(json!(game_board));
+
+    // was it a winning move?
+    if is_winning_move(row, col, &game_board) {
+        game.winner_key = Set(Some(cookies.session_id));
+        game.ended_at = Set(Some(Utc::now().with_timezone(&FixedOffset::east(0))));
+        let _ = channel_tx.send(format!("End {:?}", player_num));
+    }
+
+    // are there any more moves left on board?
+    // TO-DO
+
+    game.update(conn).await.unwrap();
+
+    // notify channel of updated board
+    let _ = channel_tx.send(format!("Board {:?}", game_board));
+
+    Ok(())
+}
+
+fn get_ai_play(board: Vec<Vec<u8>>) -> (usize, usize) {
+    for i in 0..board.len() {
+        if board[i][board[i].len() - 1] == 0 {
+            return (i, board[i].len() - 1);
+        }
+    }
+
+    (0, 0)
 }
