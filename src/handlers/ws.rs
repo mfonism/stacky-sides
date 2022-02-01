@@ -157,7 +157,7 @@ async fn play_as_human(
         .await
         .unwrap()
         .unwrap();
-    let game_board = entity::game::get_last_board(&game, conn)
+    let game_board = entity::game::get_most_recent_board(&game, conn)
         .await
         .unwrap()
         .unwrap();
@@ -191,7 +191,7 @@ async fn play_as_ai(
         .await
         .unwrap()
         .unwrap();
-    let game_board = entity::game::get_last_board(&game, conn)
+    let game_board = entity::game::get_most_recent_board(&game, conn)
         .await
         .unwrap()
         .unwrap();

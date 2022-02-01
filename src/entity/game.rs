@@ -57,7 +57,7 @@ pub async fn find_by_id(game_id: Uuid, conn: &DatabaseConnection) -> Result<Opti
     Entity::find_by_id(game_id).one(conn).await
 }
 
-pub async fn get_last_board(
+pub async fn get_most_recent_board(
     game: &Model,
     conn: &DatabaseConnection,
 ) -> Result<Option<super::board::Model>, DbErr> {

@@ -94,7 +94,7 @@ pub async fn play_game(
         .map_err(handle_db_error)?
         .ok_or(format!("Game not found: {}", game_id))
         .map_err(handle_not_found_error)?;
-    let game_board = entity::game::get_last_board(&game, conn)
+    let game_board = entity::game::get_most_recent_board(&game, conn)
         .await
         .map_err(handle_db_error)?
         .ok_or(format!("Board not found in game: {}", game_id))
