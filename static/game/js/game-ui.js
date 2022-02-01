@@ -1,13 +1,19 @@
 class GameUI {
-  constructor(playerNum, gameBoardData, isGameOver) {
+  constructor(playerNum, gameBoardData, isAgainstAI, isGameOver) {
     this.canPlayNext = false;
     this.playerNum = playerNum;
     this.gameBoardData = gameBoardData;
+    this.isAgainstAI = isAgainstAI;
     this.isGameOver = isGameOver;
     this.showPlayerStatus();
   }
 
   showPlayerStatus() {
+    if (this.isAgainstAI) {
+      // in this version, AI is always player 2
+      document.querySelector(".white .description").innerText = "AI";
+    }
+
     if (this.playerNum === 0) {
       return;
     }
@@ -135,7 +141,26 @@ class GameUI {
   displayResult() {
     let resultElt = document.createElement("p");
     resultElt.classList.add("h6", "pt-2");
-    resultElt.textContent = `Player ${this.winnerNum} won, Player ${this.loserNum} lost.`;
+
+    let player1OutLoud, player2OutLoud;
+    player1OutLoud = this.playerNum === 1 ? "You" : "Player 1";
+    player2OutLoud = this.playerNum === 2 ? "You" : "Player 2";
+    // for now, if AI is playing, they are player 2
+    if (this.isAgainstAI) {
+      player2OutLoud = "AI";
+    }
+
+    let whoWon, whoLost;
+    if (this.winnerNum === 1) {
+      whoWon = player1OutLoud;
+      whoLost = player2OutLoud;
+    } else if (this.winnerNum === 2) {
+      whoWon = player2OutLoud;
+      whoLost = player1OutLoud;
+    }
+
+    resultElt.textContent =
+      this.winnerNum === 0 ? `It's a TIE!` : `${whoWon} won, ${whoLost} lost.`;
 
     let resultCardElt = document.querySelector(".result-card");
     while (resultCardElt.firstChild) {

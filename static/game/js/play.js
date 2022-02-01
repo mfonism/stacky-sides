@@ -5,13 +5,16 @@ window.addEventListener("DOMContentLoaded", (event) => {
   const gameBoardData = JSON.parse(
     document.getElementById("gameBoardData").textContent
   );
+  const isAgainstAI = JSON.parse(
+    document.getElementById("isAgainstAI").textContent
+  );
   const playerNum = JSON.parse(
     document.getElementById("playerNum").textContent
   );
   const isGameOver = JSON.parse(
     document.getElementById("isGameOver").textContent
   );
-  let gameUI = new GameUI(playerNum, gameBoardData, isGameOver);
+  let gameUI = new GameUI(playerNum, gameBoardData, isAgainstAI, isGameOver);
 
   const websocket = new WebSocket(gamePlaySocketUrl);
   websocket.onopen = function (event) {
