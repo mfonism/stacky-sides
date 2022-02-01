@@ -1,8 +1,8 @@
 use chrono::{FixedOffset, Utc};
 use sea_orm::entity::prelude::*;
 use sea_orm::{DatabaseConnection, DbErr, Set};
+use sea_orm::{QueryOrder, QuerySelect};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use uuid::Uuid;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
@@ -14,13 +14,21 @@ pub struct Model {
     pub is_against_ai: bool,
     pub player1_key: Option<Uuid>,
     pub player2_key: Option<Uuid>,
-    pub board: Json,
     pub winner_key: Option<Uuid>,
     pub ended_at: Option<DateTimeWithTimeZone>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
+pub enum Relation {
+    #[sea_orm(has_many = "super::board::Entity")]
+    Board,
+}
+
+impl Related<super::board::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Board.def()
+    }
+}
 
 impl ActiveModelBehavior for ActiveModel {}
 
@@ -34,25 +42,28 @@ pub async fn create(
         created_at: Set(Utc::now().with_timezone(&FixedOffset::east(0))),
         is_against_ai: Set(is_against_ai),
         player1_key: Set(Some(creator_key)),
-        board: Set(json!(init_game_board())),
         ..Default::default()
     };
 
-    game.insert(conn).await
+    let game = game.insert(conn).await?;
+
+    // create initial board for this game
+    super::board::create_initial(game.uuid, conn).await?;
+
+    Ok(game)
 }
 
 pub async fn find_by_id(game_id: Uuid, conn: &DatabaseConnection) -> Result<Option<Model>, DbErr> {
     Entity::find_by_id(game_id).one(conn).await
 }
 
-pub fn init_game_board() -> Vec<Vec<u8>> {
-    vec![
-        vec![0, 0, 0, 0, 0, 0, 0],
-        vec![0, 0, 0, 0, 0, 0, 0],
-        vec![0, 0, 0, 0, 0, 0, 0],
-        vec![0, 0, 0, 0, 0, 0, 0],
-        vec![0, 0, 0, 0, 0, 0, 0],
-        vec![0, 0, 0, 0, 0, 0, 0],
-        vec![0, 0, 0, 0, 0, 0, 0],
-    ]
+pub async fn get_last_board(
+    game: &Model,
+    conn: &DatabaseConnection,
+) -> Result<Option<super::board::Model>, DbErr> {
+    game.find_related(super::board::Entity)
+        .order_by_desc(super::board::Column::CreatedAt)
+        .limit(1)
+        .one(conn)
+        .await
 }

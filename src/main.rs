@@ -49,9 +49,13 @@ async fn main() {
         .await
         .expect("Database connection failed");
 
+    // create tables
     entity_setup::create_game_table(&conn)
         .await
         .expect("Cannot create game table");
+    entity_setup::create_board_table(&conn)
+        .await
+        .expect("Cannot create board table");
 
     let app = Router::new()
         .route("/", get(index).post(create_game))

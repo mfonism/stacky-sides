@@ -51,7 +51,7 @@
 
 <script id="gameWsUrl" type="application/json">{{ game_ws_url }}</script>
 <script id="isAgainstAI" type="application/json">{{ is_against_ai }}</script>
-<script id="gameBoardData" type="application/json">{{ game_board }}</script>
+<script id="gameBoardData" type="application/json">{{ game_board_data }}</script>
 <script id="playerNum" type="application/json">{{ player_num }}</script>
 <script id="isGameOver" type="application/json">{{ is_game_over }}</script>
 {% endblock content %}

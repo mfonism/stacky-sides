@@ -9,7 +9,6 @@ use futures::stream::StreamExt;
 use sea_orm::prelude::*;
 use sea_orm::{DatabaseConnection, Set};
 use serde_json;
-use serde_json::json;
 use tokio::sync::broadcast;
 use uuid::Uuid;
 
@@ -152,15 +151,24 @@ async fn play_as_human(
     player_num: u8,
     channel_tx: broadcast::Sender<String>,
     cookies: Cookies,
-) -> Result<(), &str> {
+) -> Result<(), String> {
     // refresh game from db
     let game = entity::game::find_by_id(game_id, &conn)
         .await
         .unwrap()
         .unwrap();
+    let game_board = entity::game::get_last_board(&game, conn)
+        .await
+        .unwrap()
+        .unwrap();
+
+    let board_state: Vec<Vec<u8>> = serde_json::from_value(game_board.state.clone()).expect(
+        &format!("could not deserialize game board:\n{:?}", game_board.state),
+    );
 
     play(
         game,
+        board_state,
         &conn,
         row,
         col,
@@ -177,9 +185,13 @@ async fn play_as_ai(
     player_num: u8,
     channel_tx: broadcast::Sender<String>,
     cookies: Cookies,
-) -> Result<(), &str> {
+) -> Result<(), String> {
     // refresh game from db
     let game = entity::game::find_by_id(game_id, &conn)
+        .await
+        .unwrap()
+        .unwrap();
+    let game_board = entity::game::get_last_board(&game, conn)
         .await
         .unwrap()
         .unwrap();
@@ -190,14 +202,14 @@ async fn play_as_ai(
         _ => panic!("This shouldn't be happening!"),
     };
 
-    let board: Vec<Vec<u8>> = serde_json::from_value(game.board.clone()).expect(&format!(
-        "could not deserialize game board:\n{:?}",
-        game.board
-    ));
-    let (row, col) = get_ai_play(board);
+    let board_state: Vec<Vec<u8>> = serde_json::from_value(game_board.state.clone()).expect(
+        &format!("could not deserialize game board:\n{:?}", game_board.state),
+    );
+    let (row, col) = get_ai_play(&board_state);
 
     play(
         game,
+        board_state,
         &conn,
         row,
         col,
@@ -210,16 +222,17 @@ async fn play_as_ai(
 
 async fn play(
     game: entity::game::Model,
+    board_state: Vec<Vec<u8>>,
     conn: &DatabaseConnection,
     row: usize,
     col: usize,
     player_num: u8,
     channel_tx: broadcast::Sender<String>,
     cookies: Cookies,
-) -> Result<(), &str> {
+) -> Result<(), String> {
     // game has already ended
     if let Some(_) = game.ended_at {
-        return Err("game already ended");
+        return Err(String::from("game already ended"));
     }
 
     // invalid selection?
@@ -227,36 +240,35 @@ async fn play(
     // * selection has already been made on this board
     // * selection goes against board rules)
 
-    // update game board with incoming selection
-    let game_board = game.board.clone();
-    let mut game_board: Vec<Vec<u8>> = serde_json::from_value(game_board).expect(&format!(
-        "could not deserialize game board:\n{:?}",
-        game.board
-    ));
-    game_board[row][col] = player_num;
-
-    let mut game: entity::game::ActiveModel = game.into();
-    game.board = Set(json!(game_board));
+    // create board for current game play
+    let game_board = entity::board::create_next(game.uuid, board_state, row, col, player_num, conn)
+        .await
+        .map_err(|err| format!("Database error: {}", err))?;
+    let board_state: Vec<Vec<u8>> = serde_json::from_value(game_board.state.clone()).expect(
+        &format!("could not deserialize game board:\n{:?}", game_board.state),
+    );
 
     // was it a winning move?
-    if is_winning_move(row, col, &game_board) {
+    if is_winning_move(row, col, &board_state) {
+        let mut game: entity::game::ActiveModel = game.into();
+
         game.winner_key = Set(Some(cookies.session_id));
         game.ended_at = Set(Some(Utc::now().with_timezone(&FixedOffset::east(0))));
+        game.update(conn).await.unwrap();
+
         let _ = channel_tx.send(format!("End {:?}", player_num));
     }
 
     // are there any more moves left on board?
     // TO-DO
 
-    game.update(conn).await.unwrap();
-
     // notify channel of updated board
-    let _ = channel_tx.send(format!("Board {:?}", game_board));
+    let _ = channel_tx.send(format!("Board {:?}", board_state));
 
     Ok(())
 }
 
-fn get_ai_play(board: Vec<Vec<u8>>) -> (usize, usize) {
+fn get_ai_play(board: &Vec<Vec<u8>>) -> (usize, usize) {
     for i in 0..board.len() {
         if board[i][board[i].len() - 1] == 0 {
             return (i, board[i].len() - 1);

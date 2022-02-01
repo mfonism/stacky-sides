@@ -94,9 +94,13 @@ pub async fn play_game(
         .map_err(handle_db_error)?
         .ok_or(format!("Game not found: {}", game_id))
         .map_err(handle_not_found_error)?;
+    let game_board = entity::game::get_last_board(&game, conn)
+        .await
+        .map_err(handle_db_error)?
+        .ok_or(format!("Board not found in game: {}", game_id))
+        .map_err(handle_not_found_error)?;
 
     let is_against_ai = game.is_against_ai;
-    let game_board = game.board.clone();
     let is_game_over = match game.ended_at {
         None => false,
         _ => true,
@@ -117,7 +121,7 @@ pub async fn play_game(
     context.insert("site_name", SITE_NAME);
     context.insert("is_against_ai", &is_against_ai);
     context.insert("player_num", &player_num);
-    context.insert("game_board", &game_board);
+    context.insert("game_board_data", &game_board.state);
     context.insert("is_game_over", &is_game_over);
     context.insert("game_board_width", &7);
     context.insert("game_board_height", &7);
