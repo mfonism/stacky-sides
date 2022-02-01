@@ -13,7 +13,13 @@
     <div class="row justify-content-center">
         <div class="col-md-11 col-lg-9 col-xl-8 pb-4">
             <h1 class="h3 text-center">Game created!</h1>
-            <p class="text-center">Please share game play link with your friends so they can play with you!</p>
+            {% if is_against_ai %}
+            <h2 class="h5 text-center">Human vs Computer</h2>
+            <p class="text-center">Please share game play link with your friends so they may watch you play!</p>
+            {% else %}
+            <h2 class="h5 text-center">Human vs Human</h2>
+            <p class="text-center">Please share game play link with your friends so they may play with you!</p>
+            {% endif %}
             <div class="share p-3 d-flex">
                 <span id="gameUrl" class="pe-2 me-auto">{{ game_url }}</span>
                 <span class="clipboard-icons">

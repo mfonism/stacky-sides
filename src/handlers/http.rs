@@ -73,6 +73,7 @@ pub async fn share_game(
 
     let mut context = Context::new();
     context.insert("game_url", &game_url);
+    context.insert("is_against_ai", &game.is_against_ai);
     context.insert("site_name", SITE_NAME);
     let body = templates
         .render("game/share.html.tera", &context)
