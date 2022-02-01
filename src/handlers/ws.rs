@@ -107,7 +107,11 @@ async fn ws_game_play_handler(
                             return;
                         }
 
-                        if let Err(_) = play_as_human(
+                        // try playing as human
+                        // break out of game loop if it fails
+                        // (it only fails if game is already over)
+                        if let Err(_) = play(
+                            true,
                             game_id,
                             &conn,
                             row,
@@ -121,10 +125,21 @@ async fn ws_game_play_handler(
                             break;
                         }
 
+                        // try playing as ai if in game with ai
+                        // break out of game loop if it fails
+                        // (it only fails if game is already over)
                         if game.is_against_ai {
-                            if let Err(_) =
-                                play_as_ai(game_id, &conn, player_num, channel_tx.clone(), cookies)
-                                    .await
+                            if let Err(_) = play(
+                                false,
+                                game_id,
+                                &conn,
+                                row,
+                                col,
+                                player_num,
+                                channel_tx.clone(),
+                                cookies,
+                            )
+                            .await
                             {
                                 break;
                             }
@@ -143,86 +158,9 @@ async fn ws_game_play_handler(
     };
 }
 
-async fn play_as_human(
-    game_id: Uuid,
-    conn: &DatabaseConnection,
-    row: usize,
-    col: usize,
-    player_num: u8,
-    channel_tx: broadcast::Sender<String>,
-    cookies: Cookies,
-) -> Result<(), String> {
-    // refresh game from db
-    let game = entity::game::find_by_id(game_id, &conn)
-        .await
-        .unwrap()
-        .unwrap();
-    let game_board = entity::game::get_most_recent_board(&game, conn)
-        .await
-        .unwrap()
-        .unwrap();
-
-    let board_state: Vec<Vec<u8>> = serde_json::from_value(game_board.state.clone()).expect(
-        &format!("could not deserialize game board:\n{:?}", game_board.state),
-    );
-
-    play(
-        game,
-        board_state,
-        &conn,
-        row,
-        col,
-        player_num,
-        channel_tx.clone(),
-        cookies,
-    )
-    .await
-}
-
-async fn play_as_ai(
-    game_id: Uuid,
-    conn: &DatabaseConnection,
-    player_num: u8,
-    channel_tx: broadcast::Sender<String>,
-    cookies: Cookies,
-) -> Result<(), String> {
-    // refresh game from db
-    let game = entity::game::find_by_id(game_id, &conn)
-        .await
-        .unwrap()
-        .unwrap();
-    let game_board = entity::game::get_most_recent_board(&game, conn)
-        .await
-        .unwrap()
-        .unwrap();
-
-    let player_num = match player_num {
-        1 => 2,
-        2 => 1,
-        _ => panic!("This shouldn't be happening!"),
-    };
-
-    let board_state: Vec<Vec<u8>> = serde_json::from_value(game_board.state.clone()).expect(
-        &format!("could not deserialize game board:\n{:?}", game_board.state),
-    );
-    let (row, col) = get_ai_play(&board_state);
-
-    play(
-        game,
-        board_state,
-        &conn,
-        row,
-        col,
-        player_num,
-        channel_tx.clone(),
-        cookies,
-    )
-    .await
-}
-
 async fn play(
-    game: entity::game::Model,
-    board_state: Vec<Vec<u8>>,
+    is_human: bool,
+    game_id: Uuid,
     conn: &DatabaseConnection,
     row: usize,
     col: usize,
@@ -230,10 +168,38 @@ async fn play(
     channel_tx: broadcast::Sender<String>,
     cookies: Cookies,
 ) -> Result<(), String> {
-    // game has already ended
+    // refresh game from db
+    let game = entity::game::find_by_id(game_id, &conn)
+        .await
+        .unwrap()
+        .unwrap();
+
+    // has game already ended?
     if let Some(_) = game.ended_at {
         return Err(String::from("game already ended"));
     }
+
+    let game_board = entity::game::get_most_recent_board(&game, conn)
+        .await
+        .unwrap()
+        .unwrap();
+    let board_state: Vec<Vec<u8>> = serde_json::from_value(game_board.state.clone()).expect(
+        &format!("could not deserialize game board:\n{:?}", game_board.state),
+    );
+
+    let player_num = match is_human {
+        true => player_num,
+        _ => match player_num {
+            1 => 2,
+            2 => 1,
+            _ => panic!("This shouldn't be happening!"),
+        },
+    };
+
+    let (row, col) = match is_human {
+        true => (row, col),
+        _ => get_ai_play(&board_state, row, col),
+    };
 
     // invalid selection?
     // TO-DO
@@ -268,7 +234,9 @@ async fn play(
     Ok(())
 }
 
-fn get_ai_play(board: &Vec<Vec<u8>>) -> (usize, usize) {
+fn get_ai_play(board: &Vec<Vec<u8>>, _row: usize, _col: usize) -> (usize, usize) {
+    // _row and _col identify the last cell that was played by human opponent
+    // may use this information in a future version to make ai smarter
     for i in 0..board.len() {
         if board[i][board[i].len() - 1] == 0 {
             return (i, board[i].len() - 1);
