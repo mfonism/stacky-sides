@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use axum::extract::{Extension, Path};
+use axum::extract::{Extension, Form, Path};
 use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse, Redirect};
 use sea_orm::prelude::*;
@@ -9,6 +9,7 @@ use tera::{Context, Tera};
 use url::Url;
 use uuid::Uuid;
 
+use super::dto;
 use super::error::{handle_db_error, handle_not_found_error, handle_template_error};
 use crate::channels::GameChannels;
 use crate::cookies::Cookies;
@@ -33,9 +34,15 @@ pub async fn index(
 pub async fn create_game(
     Extension(ref conn): Extension<DatabaseConnection>,
     Extension(game_channels): Extension<Arc<GameChannels>>,
+    Form(payload): Form<dto::GameCreationPayload>,
     cookies: Cookies,
 ) -> impl IntoResponse {
-    let game = entity::game::create(cookies.session_id, conn, true).await;
+    let game = entity::game::create(
+        cookies.session_id,
+        conn,
+        payload.is_against_ai.unwrap_or(false),
+    )
+    .await;
 
     if let Err(_) = &game {
         return Redirect::temporary("/".parse().unwrap());

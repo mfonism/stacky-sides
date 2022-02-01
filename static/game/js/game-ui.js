@@ -11,7 +11,7 @@ class GameUI {
   showPlayerStatus() {
     if (this.isAgainstAI) {
       // in this version, AI is always player 2
-      document.querySelector(".white .description").innerText = "AI";
+      document.querySelector(".white .description").innerText = "Computer";
     }
 
     if (this.playerNum === 0) {
@@ -147,7 +147,7 @@ class GameUI {
     player2OutLoud = this.playerNum === 2 ? "You" : "Player 2";
     // for now, if AI is playing, they are player 2
     if (this.isAgainstAI) {
-      player2OutLoud = "AI";
+      player2OutLoud = "Computer";
     }
 
     let whoWon, whoLost;
